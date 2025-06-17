@@ -36,17 +36,17 @@ public class EnemyA extends Enemy{
     private void loadAnimations() {
 
         Map<Direction, Animation<TextureRegion>> idleAnims = new HashMap<>();
-        idleAnims.put(Direction.DOWN, loadAnimationFromSheet("enemyA/idle_musuh.png", 2, 2, 0.25f));
-        idleAnims.put(Direction.UP, loadAnimationFromSheet("enemyA/idle_back_musuh.png", 2, 2, 0.25f));
-        idleAnims.put(Direction.LEFT, loadAnimationFromSheet("enemyA/idle_left_musuh.png", 2,2, 0.25f));
-        idleAnims.put(Direction.RIGHT, loadAnimationFromSheet("enemyA/idle_right_musuh.png", 2, 2, 0.25f));
+        idleAnims.put(Direction.DOWN, loadAnimationFromSheet("skeleton/Idle_Skeleton_left.png", 11,1, 0.25f));
+        idleAnims.put(Direction.UP, loadAnimationFromSheet("skeleton/Idle_Skeleton_left.png", 11,1, 0.25f));
+        idleAnims.put(Direction.LEFT, loadAnimationFromSheet("skeleton/Idle_Skeleton_left.png", 11,1, 0.25f));
+        idleAnims.put(Direction.RIGHT, loadAnimationFromSheet("skeleton/Idle_Skeleton_right.png", 11, 1, 0.25f));
         this.animations.put(EnemyState.IDLE, idleAnims);
 
         Map<Direction, Animation<TextureRegion>> walkAnims = new HashMap<>();
-        walkAnims.put(Direction.DOWN, loadAnimationFromSheet("enemyA/walk_musuh.png", 2, 2, 0.15f));
-        walkAnims.put(Direction.UP, loadAnimationFromSheet("enemyA/walk_back_musuh.png", 2, 2, 0.15f));
-        walkAnims.put(Direction.LEFT, loadAnimationFromSheet("enemyA/walk_left_musuh.png", 2, 2, 0.15f));
-        walkAnims.put(Direction.RIGHT, loadAnimationFromSheet("enemyA/walk_right_musuh.png", 2, 2, 0.15f));
+        walkAnims.put(Direction.DOWN, loadAnimationFromSheet("skeleton/Walk_Skeleton_left.png", 13, 1, 0.15f));
+        walkAnims.put(Direction.UP, loadAnimationFromSheet("skeleton/Walk_Skeleton_right.png", 13, 1, 0.15f));
+        walkAnims.put(Direction.LEFT, loadAnimationFromSheet("skeleton/Walk_Skeleton_left.png", 13, 1, 0.15f));
+        walkAnims.put(Direction.RIGHT, loadAnimationFromSheet("skeleton/Walk_Skeleton_right.png", 13, 1, 0.15f));
         this.animations.put(EnemyState.CHASING, walkAnims);
     }
 

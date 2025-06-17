@@ -7,10 +7,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Array;
 import io.github.mwnlgo.pbo.Main;
-import io.github.mwnlgo.pbo.entities.Enemy;
-import io.github.mwnlgo.pbo.entities.EnemyA;
-import io.github.mwnlgo.pbo.entities.Player;
-import io.github.mwnlgo.pbo.entities.Projectile;
+import io.github.mwnlgo.pbo.entities.*;
 
 import java.util.Iterator;
 
@@ -46,6 +43,8 @@ public class GameScreen implements Screen {
         // Contoh memunculkan beberapa musuh di posisi acak
         enemies.add(new EnemyA(100, 500, player, this));
         enemies.add(new EnemyA(700, 100, player, this));
+        enemies.add(new EnemyB(500, 400, player, this));
+        enemies.add(new EnemyC(200, 200, player, this));
         // TODO: Tambahkan EnemyB dan EnemyC di sini nanti
     }
 
