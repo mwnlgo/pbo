@@ -2,72 +2,97 @@ package io.github.mwnlgo.pbo.entities;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Rectangle;
+import io.github.mwnlgo.pbo.Screens.GameScreen;
+import io.github.mwnlgo.pbo.enums.Direction;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.utils.Array;
 
-public class Projectile {
+public class Projectile { // Nama kelas Projectile karena ini proyektil pemain
     private Vector2 position;
     private Vector2 velocity;
-    private float speed;
     private Texture texture;
+    private float speed = 500f; // Kecepatan proyektil pemain
+    private float damage = 25f; // Damage proyektil pemain
+    private GameScreen screen;
     private Rectangle bounds;
-    private boolean active; // Untuk menandai apakah proyektil ini masih aktif
+    private boolean active; // Status aktif proyektil
+    private Direction direction; // Arah proyektil
 
-    public Projectile(float startX, float startY) {
-        this.position = new Vector2(startX, startY);
-        this.speed = 400f; // Kecepatan proyektil, misalnya 400 piksel/detik
+    public Projectile(float x, float y, Direction direction, GameScreen screen) {
+        this.position = new Vector2(x, y);
+        // Ganti dengan path aset proyektil pemain Anda
+        this.texture = new Texture("player/player_projectile.png");
+        this.screen = screen;
         this.active = true;
-        this.texture = new Texture("projectile.png"); // Ganti dengan gambar proyektil Anda
+        this.direction = direction;
 
-        this.bounds = new Rectangle(startX, startY, texture.getWidth(), texture.getHeight());
+        // Tentukan kecepatan berdasarkan arah pemain
+        this.velocity = new Vector2();
+        switch (direction) {
+            case UP:
+                velocity.set(0, 1).scl(speed);
+                break;
+            case DOWN:
+                velocity.set(0, -1).scl(speed);
+                break;
+            case LEFT:
+                velocity.set(-1, 0).scl(speed);
+                break;
+            case RIGHT:
+                velocity.set(1, 0).scl(speed);
+                break;
+        }
+
+        this.bounds = new Rectangle(x, y, texture.getWidth(), texture.getHeight());
     }
 
     public void update(float delta) {
         if (!active) return;
 
-        // Gerakkan proyektil sesuai kecepatan dan arahnya
         position.mulAdd(velocity, delta);
-        bounds.setCenter(position);
+        bounds.setPosition(position.x - bounds.width / 2f, position.y - bounds.height / 2f); // Sesuaikan posisi bounds ke tengah
 
-        // TODO: Tambahkan logika untuk menonaktifkan proyektil
-        // jika keluar dari layar atau mengenai sesuatu.
-        // Contoh: if (position.x > Gdx.graphics.getWidth()) { active = false; }
+        // Periksa tabrakan dengan musuh
+        // Penting: Anda perlu mengelola daftar semua musuh di GameScreen
+        // Contoh: Iterasi melalui daftar musuh di GameScreen
+        Array<Enemy> allEnemies = screen.getAllEnemies(); // Anda perlu menambahkan metode ini di GameScreen
+        for (Enemy enemy : allEnemies) {
+            if (active && enemy.isAlive() && bounds.overlaps(enemy.getBounds())) {
+                enemy.takeDamage(damage);
+                active = false; // Proyektil non-aktif setelah mengenai musuh
+                Gdx.app.log("Projectile", "Projectile hit enemy for " + damage + " damage!");
+                break; // Hentikan iterasi setelah mengenai satu musuh
+            }
+        }
+
+        // Hancurkan proyektil jika keluar layar
+        if (position.x < -100 || position.x > screen.getWorldWidth() + 100 ||
+            position.y < -100 || position.y > screen.getWorldHeight() + 100) {
+            active = false;
+        }
     }
 
     public void render(SpriteBatch batch) {
-        if (!active) return;
-        batch.draw(texture, bounds.x, bounds.y);
-    }
-
-    public void dispose() {
-        texture.dispose();
-    }
-
-    public Vector2 getPosition() {
-        return position;
-    }
-
-    public Vector2 getVelocity() {
-        return velocity;
-    }
-
-    public float getSpeed() {
-        return speed;
-    }
-
-    public Texture getTexture() {
-        return texture;
+        if (active) {
+            // Gambar proyektil di tengah posisinya
+            batch.draw(texture, position.x - texture.getWidth() / 2f, position.y - texture.getHeight() / 2f);
+        }
     }
 
     public boolean isActive() {
         return active;
     }
 
-    public Rectangle getBounds() {
-        return bounds;
+    public void dispose() {
+        if (texture != null) {
+            texture.dispose();
+            texture = null;
+        }
     }
 
-    public void setActive(boolean active) {
-        this.active = active;
+    public Rectangle getBounds() {
+        return bounds;
     }
 }

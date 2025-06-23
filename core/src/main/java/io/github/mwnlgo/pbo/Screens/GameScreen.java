@@ -6,104 +6,127 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
 import io.github.mwnlgo.pbo.Main;
 import io.github.mwnlgo.pbo.entities.*;
 
-import java.util.Iterator;
-
 public class GameScreen implements Screen {
 
-    private final Main game;
-    private final SpriteBatch batch;
-    private final OrthographicCamera camera;
+    private Main game;
+    private OrthographicCamera camera;
+    private Viewport viewport;
+    private SpriteBatch batch;
 
-    // Aktor utama di dalam panggung
-    private final Player player;
-    private final Array<Enemy> enemies;
-    private final Array<Projectile> projectiles;
+    private float worldWidth, worldHeight;
+
+    private Player player;
+    private Array<Enemy> allEnemies;
+    private Array<EnemyProjectile> enemyProjectiles;
+    private Array<Projectile> playerProjectiles;
+
+    private boolean assetsLoaded = false;
 
     public GameScreen(Main game) {
         this.game = game;
-        this.batch = new SpriteBatch();
+        this.batch = game.getBatch();
 
-        // Atur kamera untuk melihat dunia game
-        this.camera = new OrthographicCamera();
-        this.camera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        camera = new OrthographicCamera();
+        viewport = new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), camera);
+        camera.position.set(viewport.getWorldWidth() / 2, viewport.getWorldHeight() / 2, 0);
 
-        // Ciptakan para aktor
-        this.player = new Player(400, 300, this);
-        this.enemies = new Array<>();
-        this.projectiles = new Array<>();
+        this.worldWidth = viewport.getWorldWidth();
+        this.worldHeight = viewport.getWorldHeight();
 
-        // Panggil beberapa musuh untuk pertama kali
-        spawnEnemies();
+        allEnemies = new Array<>();
+        enemyProjectiles = new Array<>();
+        playerProjectiles = new Array<>();
     }
 
-    private void spawnEnemies() {
-        // Contoh memunculkan beberapa musuh di posisi acak
-        enemies.add(new EnemyA(100, 500, player, this));
-        enemies.add(new EnemyA(700, 100, player, this));
-        enemies.add(new EnemyB(500, 400, player, this));
-        enemies.add(new EnemyC(200, 200, player, this));
-        // TODO: Tambahkan EnemyB dan EnemyC di sini nanti
+    @Override
+    public void show() {
+        if (!assetsLoaded) {
+            Gdx.app.log("GameScreen", "Loading assets...");
+
+            player = new Player(100, 100, this);
+
+            allEnemies.add(new EnemyA(300, 300, player, this));
+            allEnemies.add(new EnemyA(500, 200, player, this));
+            allEnemies.add(new EnemyB(700, 400, player, this));
+            allEnemies.add(new EnemyC(1000, 100, player, this));
+            allEnemies.add(new EnemyC(800, 600, player, this));
+
+            assetsLoaded = true;
+            Gdx.app.log("GameScreen", "Assets loaded.");
+        }
+        Gdx.input.setInputProcessor(null);
     }
 
-    // Metode ini akan dipanggil oleh PlayerAttackComponent
-    public void spawnEntity(Projectile projectile) {
-        projectiles.add(projectile);
+    public void addEnemyProjectile(EnemyProjectile projectile) {
+        Gdx.app.log("GameScreen", "Enemy projectile added at: " + projectile.getBounds().x + ", " + projectile.getBounds().y);
+        enemyProjectiles.add(projectile);
+    }
+
+    public void spawnPlayerProjectile(Projectile projectile) {
+        playerProjectiles.add(projectile);
     }
 
     @Override
     public void render(float delta) {
-        // --- LOGIKA UPDATE (Update semua "otak" aktor) ---
+        Gdx.gl.glClearColor(0, 0, 0, 1);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Update player
+        if (!assetsLoaded) return;
+
         player.update(delta);
 
-        // Update semua musuh & hapus yang mati
-        Iterator<Enemy> enemyIterator = enemies.iterator();
-        while (enemyIterator.hasNext()) {
-            Enemy enemy = enemyIterator.next();
+        for (int i = allEnemies.size - 1; i >= 0; i--) {
+            Enemy enemy = allEnemies.get(i);
             enemy.update(delta);
             if (!enemy.isAlive()) {
                 enemy.dispose();
-                enemyIterator.remove();
+                allEnemies.removeIndex(i);
             }
         }
 
-        // Update semua proyektil & hapus yang tidak aktif
-        Iterator<Projectile> projectileIterator = projectiles.iterator();
-        while (projectileIterator.hasNext()) {
-            Projectile p = projectileIterator.next();
+        for (int i = enemyProjectiles.size - 1; i >= 0; i--) {
+            EnemyProjectile p = enemyProjectiles.get(i);
             p.update(delta);
             if (!p.isActive()) {
                 p.dispose();
-                projectileIterator.remove();
+                enemyProjectiles.removeIndex(i);
             }
         }
 
-        // TODO: Logika deteksi tabrakan (misal: proyektil mengenai musuh)
+        for (int i = playerProjectiles.size - 1; i >= 0; i--) {
+            Projectile p = playerProjectiles.get(i);
+            p.update(delta);
+            if (!p.isActive()) {
+                p.dispose();
+                playerProjectiles.removeIndex(i);
+            }
+        }
 
-
-        // --- LOGIKA RENDER (Gambar semua aktor ke layar) ---
-
-        // Bersihkan layar
-        Gdx.gl.glClearColor(0.1f, 0.1f, 0.2f, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-        // Atur kamera agar mengikuti player
+        // Update camera mengikuti pemain
         camera.position.set(player.getPosition().x, player.getPosition().y, 0);
+        camera.position.x = Math.max(viewport.getWorldWidth() / 2, Math.min(worldWidth - viewport.getWorldWidth() / 2, camera.position.x));
+        camera.position.y = Math.max(viewport.getWorldHeight() / 2, Math.min(worldHeight - viewport.getWorldHeight() / 2, camera.position.y));
         camera.update();
-        batch.setProjectionMatrix(camera.combined);
 
-        // Mulai menggambar
+        batch.setProjectionMatrix(camera.combined);
         batch.begin();
 
         player.render(batch);
-        for (Enemy enemy : enemies) {
+
+        for (Enemy enemy : allEnemies) {
             enemy.render(batch);
         }
-        for (Projectile p : projectiles) {
+
+        for (EnemyProjectile p : enemyProjectiles) {
+            p.render(batch);
+        }
+
+        for (Projectile p : playerProjectiles) {
             p.render(batch);
         }
 
@@ -112,38 +135,42 @@ public class GameScreen implements Screen {
 
     @Override
     public void resize(int width, int height) {
-        camera.setToOrtho(false, width, height);
+        viewport.update(width, height, true);
     }
+
+    @Override public void pause() {}
+    @Override public void resume() {}
+    @Override public void hide() {}
 
     @Override
     public void dispose() {
-        // Hancurkan semua resource untuk mencegah memory leak!
-        batch.dispose();
-        player.dispose();
-        for (Enemy enemy : enemies) {
-            enemy.dispose();
-        }
-        for (Projectile p : projectiles) {
-            p.dispose();
-        }
+        if (player != null) player.dispose();
+
+        for (Enemy e : allEnemies) e.dispose();
+        allEnemies.clear();
+
+        for (EnemyProjectile p : enemyProjectiles) p.dispose();
+        enemyProjectiles.clear();
+
+        for (Projectile p : playerProjectiles) p.dispose();
+        playerProjectiles.clear();
+
+        Gdx.app.log("GameScreen", "Disposed GameScreen resources.");
     }
 
-    // --- Metode lain yang bisa diabaikan untuk saat ini ---
-    @Override
-    public void show() { }
-
-    @Override
-    public void pause() { }
-
-    @Override
-    public void resume() { }
-
-    @Override
-    public void hide() { }
-
-    // --- Getter untuk Kamera (dibutuhkan oleh Player) ---
     public OrthographicCamera getCamera() {
         return camera;
     }
 
+    public float getWorldWidth() {
+        return worldWidth;
+    }
+
+    public float getWorldHeight() {
+        return worldHeight;
+    }
+
+    public Array<Enemy> getAllEnemies() {
+        return allEnemies;
+    }
 }

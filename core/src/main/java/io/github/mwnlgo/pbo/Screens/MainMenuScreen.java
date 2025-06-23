@@ -1,66 +1,105 @@
 package io.github.mwnlgo.pbo.Screens;
 
-
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
 import io.github.mwnlgo.pbo.Main;
 
 public class MainMenuScreen implements Screen {
 
-    private final Main game;
+    private final Main game; // Ubah ke MainGame
+    private OrthographicCamera camera; // Kamera untuk viewport
+    private Viewport viewport; // Viewport untuk skala layar
+    private BitmapFont font; // Font untuk teks
+    // Kita tidak perlu mendeklarasikan SpriteBatch di sini karena akan diambil dari game.getBatch()
 
-    public MainMenuScreen(Main game) {
+    public MainMenuScreen(Main game) { // Ubah konstruktor ke MainGame
         this.game = game;
 
+        // Inisialisasi kamera dan viewport
+        camera = new OrthographicCamera();
+        // Gunakan ukuran layar saat ini sebagai basis viewport.
+        // FitViewport akan memastikan rasio aspek tetap terjaga.
+        viewport = new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), camera);
+        camera.position.set(viewport.getWorldWidth() / 2, viewport.getWorldHeight() / 2, 0); // Posisikan kamera di tengah
+        viewport.apply(true); // Terapkan viewport agar kamera terpusat dengan benar
+
+        // Inisialisasi font. Font default sangat berguna untuk debugging atau menu sederhana.
+        font = new BitmapFont();
+        font.setColor(Color.WHITE); // Atur warna teks
+        // Sesuaikan skala font jika terlalu kecil atau besar.
+        // font.getData().setScale(2.0f); // Contoh: perbesar font 2x
     }
 
     @Override
     public void show() {
-
+        // Metode ini dipanggil ketika MainMenuScreen menjadi layar aktif
     }
 
     @Override
     public void render(float delta) {
+        // Hapus layar dengan warna merah (atau warna lain yang Anda inginkan)
         ScreenUtils.clear(Color.RED);
 
-        game.viewport.apply();
-        game.batch.setProjectionMatrix(game.viewport.getCamera().combined);
+        // Terapkan viewport agar drawing disesuaikan dengan skala layar
+        // true: center the camera (biasanya true untuk menu)
+        viewport.apply(true);
 
-        game.batch.begin();
-        game.font.draw(game.batch, "Welcome to The Game!!! ", 1, 1.5f);
-        game.font.draw(game.batch, "Tap anywhere to begin!", 1, 1);
-        game.batch.end();
+        // Set projection matrix batch agar sesuai dengan kamera viewport
+        game.getBatch().setProjectionMatrix(viewport.getCamera().combined);
 
+        game.getBatch().begin();
+        // Gambar teks. Posisi (x, y) relatif terhadap viewport.
+        // Sesuaikan posisi (x, y) dan ukuran viewport jika teks tidak terlihat atau di tempat yang salah.
+        // Misalnya, jika viewport 800x480, (1, 1.5f) mungkin terlalu kecil/di pojok.
+        // Gunakan posisi relatif atau hitungan dari viewport.getWorldWidth()/2 dan viewport.getWorldHeight()/2
+        font.draw(game.getBatch(), "Welcome to The Game!!! ", viewport.getWorldWidth() / 2 - 150, viewport.getWorldHeight() / 2 + 50);
+        font.draw(game.getBatch(), "Tap anywhere to begin!", viewport.getWorldWidth() / 2 - 120, viewport.getWorldHeight() / 2 - 50);
+        game.getBatch().end();
+
+        // Cek jika layar disentuh/diklik
         if (Gdx.input.justTouched()){
+            // Beralih ke GameScreen
             game.setScreen(new GameScreen(game));
+            // Penting: Buang resource MainMenuScreen setelah tidak digunakan lagi
             dispose();
         }
     }
 
     @Override
     public void resize(int width, int height) {
-        game.viewport.update(width, height, true);
+        // Perbarui viewport ketika ukuran jendela berubah
+        viewport.update(width, height, true); // true: center the camera
     }
 
     @Override
     public void pause() {
-
+        // Dipanggil saat game dijeda (misalnya, aplikasi berpindah ke latar belakang)
     }
 
     @Override
     public void resume() {
-
+        // Dipanggil saat game dilanjutkan dari keadaan jeda
     }
 
     @Override
     public void hide() {
-
+        // Dipanggil ketika layar ini tidak lagi menjadi layar aktif
+        // (misalnya, ketika setScreen() dipanggil)
     }
 
     @Override
     public void dispose() {
-
+        // Penting: Buang resource yang dibuat di layar ini
+        // Jika font dibuat di sini, buang di sini
+        if (font != null) {
+            font.dispose();
+        }
+        Gdx.app.log("MainMenuScreen", "Disposed MainMenuScreen resources.");
     }
 }

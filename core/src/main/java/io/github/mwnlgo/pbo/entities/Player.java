@@ -363,4 +363,8 @@ public class Player implements IDamageable {
     public GameScreen getScreen() {
         return screen;
     }
+
+    public Direction getCurrentDirection() {
+        return currentDirection;
+    }
 }
