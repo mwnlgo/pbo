@@ -28,19 +28,19 @@ public class Player implements IDamageable {
     private GameScreen screen;
     private Vector2 position;
     private Rectangle bounds;
-    // HAPUS: private float rotation; // Tidak dibutuhkan lagi
 
     private float maxHealth;
     private float currentHealth;
     private float speed;
     private boolean isAlive;
     private boolean isMoving;
+    private boolean isAttacking; // Flag untuk melacak apakah pemain sedang menyerang
 
     // Sistem Animasi Directional
     private Map<PlayerState, Map<Direction, Animation<TextureRegion>>> animations;
     private PlayerState currentState;
     private Direction currentDirection;
-    private float stateTimer;
+    private float stateTimer; // Timer untuk animasi
 
     // Sistem Multi-Serangan
     private Map<AttackType, PlayerAttackComponent> attackComponents;
@@ -49,26 +49,34 @@ public class Player implements IDamageable {
     public Player(float x, float y, GameScreen screen) {
         this.screen = screen;
         this.position = new Vector2(x, y);
-        // HAPUS: this.rotation = 0f;
         this.maxHealth = 100f;
         this.currentHealth = this.maxHealth;
         this.speed = 1000f;
         this.isAlive = true;
         this.isMoving = false;
+        this.isAttacking = false; // Inisialisasi status serangan
 
-        // Inisialisasi tidak berubah
-        loadAnimations();
-        loadAttackComponents();
+        loadAnimations(); // Muat semua animasi
+        loadAttackComponents(); // Muat komponen serangan
 
-        this.currentState = PlayerState.IDLE;
-        this.currentDirection = Direction.DOWN;
-        this.stateTimer = 0f;
-        this.currentAttack = attackComponents.get(AttackType.MELEE);
+        this.currentState = PlayerState.IDLE; // Status awal: diam
+        this.currentDirection = Direction.DOWN; // Arah awal: bawah
+        this.stateTimer = 0f; // Timer animasi dimulai dari 0
+        this.currentAttack = attackComponents.get(AttackType.MELEE); // Serangan awal: melee
 
+        // Tentukan batas pemain berdasarkan frame animasi idle awal
         TextureRegion initialFrame = animations.get(PlayerState.IDLE).get(Direction.DOWN).getKeyFrame(0);
         this.bounds = new Rectangle(x, y, initialFrame.getRegionWidth(), initialFrame.getRegionHeight());
     }
 
+    /**
+     * Memuat animasi dari sprite sheet.
+     * @param path Path ke file gambar sprite sheet.
+     * @param cols Jumlah kolom dalam sprite sheet.
+     * @param rows Jumlah baris dalam sprite sheet.
+     * @param frameDuration Durasi per frame animasi.
+     * @return Objek Animation<TextureRegion> yang sudah dimuat.
+     */
     private Animation<TextureRegion> loadAnimationFromSheet(String path, int cols, int rows, float frameDuration) {
         Texture sheet = new Texture(path);
         TextureRegion[][] temp = TextureRegion.split(sheet, sheet.getWidth() / cols, sheet.getHeight() / rows);
@@ -78,25 +86,57 @@ public class Player implements IDamageable {
                 frames.add(temp[row][col]);
             }
         }
-        return new Animation<>(frameDuration, frames, Animation.PlayMode.LOOP);
+        return new Animation<>(frameDuration, frames, Animation.PlayMode.LOOP); // Default LOOPING
     }
 
+    /**
+     * Memuat semua animasi pemain (idle, berjalan, menyerang) dari file sprite sheet.
+     */
     private void loadAnimations() {
         this.animations = new HashMap<>();
+
+        // Animasi IDLE
         Map<Direction, Animation<TextureRegion>> idleAnims = new HashMap<>();
         idleAnims.put(Direction.DOWN, loadAnimationFromSheet("player/idle_ayam.png", 2, 2, 0.25f));
         idleAnims.put(Direction.UP, loadAnimationFromSheet("player/idle_back_ayam.png", 2, 2, 0.25f));
         idleAnims.put(Direction.LEFT, loadAnimationFromSheet("player/idle_left_ayam.png", 2, 2, 0.25f));
         idleAnims.put(Direction.RIGHT, loadAnimationFromSheet("player/idle_right_ayam.png", 2, 2, 0.25f));
         animations.put(PlayerState.IDLE, idleAnims);
+
+        // Animasi WALKING
         Map<Direction, Animation<TextureRegion>> walkAnims = new HashMap<>();
         walkAnims.put(Direction.DOWN, loadAnimationFromSheet("player/walk_ayam.png", 2, 2, 0.15f));
         walkAnims.put(Direction.UP, loadAnimationFromSheet("player/walk_back_ayam.png", 2, 2, 0.15f));
         walkAnims.put(Direction.LEFT, loadAnimationFromSheet("player/walk_left_ayam.png", 2, 2, 0.15f));
         walkAnims.put(Direction.RIGHT, loadAnimationFromSheet("player/walk_right_ayam.png", 2, 2, 0.15f));
         animations.put(PlayerState.WALKING, walkAnims);
+
+        // Animasi ATTACKING (PENTING: Gunakan PlayMode.NORMAL untuk animasi sekali putar)
+        // Perhatikan bahwa di sini saya memanggil loadAnimationFromSheet, lalu mengubah PlayMode-nya.
+        // Atau Anda bisa memodifikasi loadAnimationFromSheet untuk menerima PlayMode sebagai parameter.
+        Map<Direction, Animation<TextureRegion>> attackAnims = new HashMap<>();
+        Animation<TextureRegion> attackDown = loadAnimationFromSheet("player/attack_ayam.png", 2, 2, 0.1f);
+        attackDown.setPlayMode(Animation.PlayMode.NORMAL); // Animasi serangan biasanya sekali putar
+        attackAnims.put(Direction.DOWN, attackDown);
+
+        Animation<TextureRegion> attackUp = loadAnimationFromSheet("player/attack_back_ayam.png", 2, 2, 0.1f);
+        attackUp.setPlayMode(Animation.PlayMode.NORMAL);
+        attackAnims.put(Direction.UP, attackUp);
+
+        Animation<TextureRegion> attackLeft = loadAnimationFromSheet("player/attack_left_ayam.png", 2, 2, 0.1f);
+        attackLeft.setPlayMode(Animation.PlayMode.NORMAL);
+        attackAnims.put(Direction.LEFT, attackLeft);
+
+        Animation<TextureRegion> attackRight = loadAnimationFromSheet("player/attack_right_ayam.png", 2, 2, 0.1f);
+        attackRight.setPlayMode(Animation.PlayMode.NORMAL);
+        attackAnims.put(Direction.RIGHT, attackRight);
+
+        animations.put(PlayerState.ATTACKING, attackAnims);
     }
 
+    /**
+     * Memuat komponen-komponen serangan yang berbeda.
+     */
     private void loadAttackComponents() {
         this.attackComponents = new HashMap<>();
         attackComponents.put(AttackType.MELEE, new PlayerMeleeAttack(this));
@@ -104,30 +144,58 @@ public class Player implements IDamageable {
         attackComponents.put(AttackType.SPECIAL, new PlayerSpecialAttack(this));
     }
 
+    /**
+     * Memperbarui status pemain setiap frame.
+     * @param delta Waktu dalam detik sejak frame terakhir.
+     */
     public void update(float delta) {
         if (!isAlive) {
-            currentState = PlayerState.DEAD;
+            currentState = PlayerState.DEAD; // Jika mati, set status DEAD
             return;
         }
-        PlayerState previousState = currentState;
-        isMoving = false;
-        handleInput(delta);
-        currentAttack.update(delta);
-        if (isMoving) {
+
+        PlayerState previousState = currentState; // Simpan state sebelumnya untuk mendeteksi perubahan
+        isMoving = false; // Reset status bergerak setiap frame
+        // isAttacking tidak di-reset di sini, karena animasinya harus selesai dulu
+
+        handleInput(delta); // Tangani input pemain
+        currentAttack.update(delta); // Perbarui logika komponen serangan
+
+        // --- Logika Penentuan State Animasi ---
+        if (isAttacking) {
+            currentState = PlayerState.ATTACKING;
+            // Dapatkan animasi saat ini untuk memeriksa apakah sudah selesai
+            Animation<TextureRegion> currentAnim = animations.get(currentState).get(currentDirection);
+            if (currentAnim != null && currentAnim.isAnimationFinished(stateTimer)) {
+                isAttacking = false; // Animasi serangan selesai
+                stateTimer = 0; // Reset timer untuk state berikutnya
+                // Logika ini akan secara otomatis membuat pemain beralih ke IDLE/WALKING
+                // pada frame berikutnya karena isAttacking menjadi false.
+            }
+        } else if (isMoving) {
             currentState = PlayerState.WALKING;
         } else {
             currentState = PlayerState.IDLE;
         }
+
+        // Reset stateTimer hanya jika state berubah
+        // PENTING: Jika stateTimer direset setiap frame jika tidak ada perubahan state,
+        // animasi tidak akan berjalan. Kita hanya mereset jika state berubah.
         if (currentState != previousState) {
             stateTimer = 0;
+        } else {
+            stateTimer += delta; // Lanjutkan timer jika state tidak berubah
         }
-        stateTimer += delta;
-        bounds.setCenter(position.x, position.y);
+
+        bounds.setCenter(position.x, position.y); // Perbarui posisi bounds
     }
 
+    /**
+     * Menangani input dari pemain (keyboard dan mouse).
+     * @param delta Waktu dalam detik sejak frame terakhir.
+     */
     private void handleInput(float delta) {
         // --- 1. Logika Pergerakan (dari Keyboard) ---
-        // Logika ini tetap sama, hanya untuk mengubah posisi
         Vector2 moveDirection = new Vector2();
         if (Gdx.input.isKeyPressed(Input.Keys.W)) moveDirection.y += 1;
         if (Gdx.input.isKeyPressed(Input.Keys.S)) moveDirection.y -= 1;
@@ -136,17 +204,17 @@ public class Player implements IDamageable {
 
         if (moveDirection.len() > 0) {
             isMoving = true;
-            moveDirection.nor();
-            position.mulAdd(moveDirection, speed * delta);
+            moveDirection.nor(); // Normalisasi untuk kecepatan yang konsisten di semua arah
+            position.mulAdd(moveDirection, speed * delta); // Pindahkan pemain
         }
 
         // --- 2. Logika Arah Hadap (dari Mouse) ---
-        // Ini adalah logika baru yang menggantikan rotasi
+        // Ubah koordinat mouse layar ke koordinat dunia game
         Vector3 mouseInWorld = screen.getCamera().unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
         float dx = mouseInWorld.x - position.x;
         float dy = mouseInWorld.y - position.y;
 
-        // Tentukan arah dominan (horizontal atau vertikal)
+        // Tentukan arah dominan (horizontal atau vertikal) berdasarkan posisi mouse
         if (Math.abs(dx) > Math.abs(dy)) {
             // Arah hadap dominan adalah KIRI atau KANAN
             if (dx > 0) {
@@ -168,38 +236,64 @@ public class Player implements IDamageable {
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) switchAttack(AttackType.THROW);
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) switchAttack(AttackType.SPECIAL);
 
-        if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
-            currentAttack.attack();
+        // Pemicu serangan hanya jika tombol kiri mouse baru saja ditekan dan pemain tidak sedang menyerang
+        if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT) && !isAttacking) {
+            currentAttack.attack(); // Panggil metode serangan dari komponen aktif
+            this.isAttacking = true; // Set flag isAttacking ke true
+            this.stateTimer = 0; // Reset stateTimer agar animasi serangan dimulai dari frame pertama
+            Gdx.app.log("Player", "Attack initiated! Current state: " + currentState);
         }
     }
 
+    /**
+     * Menggambar pemain ke layar.
+     * @param batch Objek SpriteBatch untuk menggambar.
+     */
     public void render(SpriteBatch batch) {
+        // Dapatkan map animasi untuk state saat ini (IDLE, WALKING, ATTACKING)
         Map<Direction, Animation<TextureRegion>> stateAnimations = animations.get(currentState);
-        if (stateAnimations == null) return;
+        if (stateAnimations == null) {
+            // Fallback ke IDLE jika state saat ini tidak memiliki animasi (misal DEAD state belum ada animasinya)
+            stateAnimations = animations.get(PlayerState.IDLE);
+            if (stateAnimations == null) return; // Jika IDLE pun tidak ada, tidak bisa menggambar
+        }
+
+        // Dapatkan animasi spesifik untuk arah saat ini
         Animation<TextureRegion> currentAnimation = stateAnimations.get(currentDirection);
-        if (currentAnimation == null) return;
-        TextureRegion currentFrame = currentAnimation.getKeyFrame(stateTimer, true);
+        if (currentAnimation == null) {
+            // Fallback ke arah DOWN jika arah saat ini tidak memiliki animasi untuk state tersebut
+            currentAnimation = stateAnimations.get(Direction.DOWN);
+            if (currentAnimation == null) return; // Jika arah DOWN pun tidak ada, tidak bisa menggambar
+        }
+
+        // Dapatkan frame saat ini dari animasi.
+        // Jika sedang menyerang (ATTACKING), gunakan `false` untuk `looping` agar animasi hanya diputar sekali.
+        // Untuk state lain, gunakan `true` untuk `looping`.
+        TextureRegion currentFrame = currentAnimation.getKeyFrame(stateTimer, currentState != PlayerState.ATTACKING);
+
         float frameWidth = currentFrame.getRegionWidth();
         float frameHeight = currentFrame.getRegionHeight();
 
-        // --- GAMBAR TANPA ROTASI ---
+        // Gambar frame animasi di posisi tengah pemain
         batch.draw(currentFrame,
             position.x - frameWidth / 2f,
             position.y - frameHeight / 2f);
     }
 
+    /**
+     * Membuang (dispose) semua tekstur yang digunakan oleh pemain untuk mencegah memory leak.
+     */
     public void dispose() {
         Gdx.app.log("Player", "Disposing player textures...");
 
-        // Kita gunakan Array untuk melacak tekstur mana yang sudah di-dispose,
+        // Gunakan Array untuk melacak tekstur mana yang sudah di-dispose,
         // untuk mencegah error jika beberapa animasi menggunakan spritesheet yang sama.
         Array<Texture> disposedTextures = new Array<>();
 
-        // Iterasi melalui Map luar (IDLE, WALKING, etc.)
+        // Iterasi melalui Map luar (IDLE, WALKING, ATTACKING, etc.)
         for (Map<Direction, Animation<TextureRegion>> stateAnims : animations.values()) {
             // Iterasi melalui Map dalam (UP, DOWN, LEFT, RIGHT)
             for (Animation<TextureRegion> animation : stateAnims.values()) {
-
                 // Periksa apakah animasi ini punya frame
                 if (animation.getKeyFrames().length > 0) {
                     // Ambil objek Texture (spritesheet utuh) dari frame pertama
@@ -209,13 +303,17 @@ public class Player implements IDamageable {
                     if (!disposedTextures.contains(texture, true)) {
                         texture.dispose(); // Lakukan dispose
                         disposedTextures.add(texture); // Catat bahwa texture ini sudah di-dispose
-                        // Gdx.app.log("Player", "Disposed texture for path: [path_anda]"); // Log jika perlu
+                        Gdx.app.log("Player", "Disposed texture: " + texture.toString());
                     }
                 }
             }
         }
     }
 
+    /**
+     * Mengganti jenis serangan yang aktif.
+     * @param type Jenis AttackType yang baru.
+     */
     public void switchAttack(AttackType type) {
         PlayerAttackComponent newAttack = attackComponents.get(type);
         if (newAttack != null) {
@@ -261,8 +359,6 @@ public class Player implements IDamageable {
     public Vector2 getPosition() {
         return position;
     }
-
-    // HAPUS: public float getRotation() { return rotation; }
 
     public GameScreen getScreen() {
         return screen;
