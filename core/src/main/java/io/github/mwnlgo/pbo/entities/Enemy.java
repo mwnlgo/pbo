@@ -1,5 +1,6 @@
 package io.github.mwnlgo.pbo.entities;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -20,6 +21,11 @@ public abstract class Enemy implements IDamageable {
     protected Vector2 position;
     protected Rectangle bounds;
 
+    protected float hitboxWidth;
+    protected float hitboxHeight;
+    protected float hitboxOffsetX;
+    protected float hitboxOffsetY;
+
     protected float maxHealth;
     protected float currentHealth;
     protected float speed;
@@ -27,50 +33,81 @@ public abstract class Enemy implements IDamageable {
 
     protected Player target;
 
-    // Sistem Animasi Directional
+    // Sistem Animasi
     protected Map<EnemyState, Map<Direction, Animation<TextureRegion>>> animations;
     protected EnemyState currentState;
+    protected EnemyState previousState;
     protected Direction currentDirection;
     protected float stateTimer;
 
-    public Enemy(float x, float y, Player target, GameScreen screen) {
+    protected Array<Texture> managedTextures;
+
+    public Enemy(float x, float y, Player target, GameScreen screen,
+                 float initialHealth, float initialSpeed,
+                 float hitboxW, float hitboxH, float hitboxOX, float hitboxOY) {
         this.position = new Vector2(x, y);
         this.target = target;
         this.screen = screen;
+        this.maxHealth = initialHealth;
+        this.currentHealth = initialHealth;
+        this.speed = initialSpeed;
         this.isAlive = true;
 
-        // Inisialisasi 'mesin' animasi
+        this.hitboxWidth = hitboxW;
+        this.hitboxHeight = hitboxH;
+        this.hitboxOffsetX = hitboxOX;
+        this.hitboxOffsetY = hitboxOY;
+        this.bounds = new Rectangle(position.x + hitboxOffsetX, position.y + hitboxOffsetY, hitboxWidth, hitboxHeight);
+
         this.animations = new HashMap<>();
         this.stateTimer = 0f;
-        this.currentDirection = Direction.DOWN; // Arah hadap default
+        this.currentDirection = Direction.DOWN;
+        this.currentState = EnemyState.IDLE;
+        this.previousState = EnemyState.IDLE;
+
+        this.managedTextures = new Array<>();
     }
 
     public void update(float delta) {
         if (!isAlive) {
-            currentState = EnemyState.DEAD;
+            if (currentState != EnemyState.DEAD) {
+                currentState = EnemyState.DEAD;
+                stateTimer = 0;
+            }
+            stateTimer += delta;
+            return;
         }
 
+        this.previousState = this.currentState;
         updateAI(delta);
-        stateTimer += delta;
 
-        if (bounds != null) {
-            bounds.setCenter(position.x, position.y);
+        if (currentState != previousState) {
+            stateTimer = 0f;
+        } else {
+            stateTimer += delta;
         }
+
+        this.bounds.setPosition(this.position.x + this.hitboxOffsetX, this.position.y + this.hitboxOffsetY);
     }
 
     public void render(SpriteBatch batch) {
         if (animations.isEmpty()) return;
 
         Map<Direction, Animation<TextureRegion>> stateAnimations = animations.get(currentState);
-        if (stateAnimations == null) return;
+        if (stateAnimations == null) {
+            stateAnimations = animations.get(EnemyState.IDLE);
+            if (stateAnimations == null) return;
+        }
 
         Animation<TextureRegion> currentAnimation = stateAnimations.get(currentDirection);
         if (currentAnimation == null) {
-            currentAnimation = stateAnimations.get(Direction.DOWN); // Fallback
+            currentAnimation = stateAnimations.get(Direction.DOWN);
         }
         if (currentAnimation == null) return;
 
-        TextureRegion currentFrame = currentAnimation.getKeyFrame(stateTimer, true);
+        boolean looping = (currentState != EnemyState.ATTACKING && currentState != EnemyState.DEAD && currentState != EnemyState.HURT);
+        TextureRegion currentFrame = currentAnimation.getKeyFrame(stateTimer, looping);
+
         float frameWidth = currentFrame.getRegionWidth();
         float frameHeight = currentFrame.getRegionHeight();
 
@@ -78,38 +115,42 @@ public abstract class Enemy implements IDamageable {
     }
 
     public void dispose() {
-        for (Map<Direction, Animation<TextureRegion>> stateAnims : animations.values()) {
-            for (Animation<TextureRegion> animation : stateAnims.values()) {
-                if (animation.getKeyFrames().length > 0) {
-                    animation.getKeyFrames()[0].getTexture().dispose();
-                    break; // Cukup dispose satu, karena semua frame dari spritesheet yang sama
-                }
-            }
+        Gdx.app.log("Enemy", "Disposing enemy textures...");
+        for (Texture texture : managedTextures) {
+            texture.dispose();
         }
+        managedTextures.clear();
     }
 
     protected abstract void updateAI(float delta);
-    protected void enterHurtState() {}
-    protected void enterDeadState() {}
+
+    protected void enterHurtState() {
+        currentState = EnemyState.HURT;
+    }
+
+    protected void enterDeadState() {
+        currentState = EnemyState.DEAD;
+    }
 
     protected Animation<TextureRegion> loadAnimationFromSheet(String path, int cols, int rows, float frameDuration) {
         Texture sheet = new Texture(path);
+        managedTextures.add(sheet);
         TextureRegion[][] tempFrames = TextureRegion.split(sheet, sheet.getWidth() / cols, sheet.getHeight() / rows);
         Array<TextureRegion> frames = new Array<>();
 
-        for (int col = 0; col < cols; col++) {
-            frames.add(tempFrames[0][col]); // baris 0 karena satu arah = satu sheet
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                frames.add(tempFrames[row][col]);
+            }
         }
-
         return new Animation<>(frameDuration, frames, Animation.PlayMode.LOOP);
     }
-
-    // --- Implementasi Interface IDamageable ---
 
     @Override
     public void takeDamage(float amount) {
         if (!isAlive) return;
         this.currentHealth -= amount;
+        Gdx.app.log("Enemy", "Took " + amount + " damage. Health: " + currentHealth);
         if (this.currentHealth <= 0) {
             this.currentHealth = 0;
             this.isAlive = false;
@@ -121,13 +162,23 @@ public abstract class Enemy implements IDamageable {
 
     @Override
     public boolean isAlive() { return isAlive; }
-
     @Override
     public Rectangle getBounds() { return bounds; }
-
     @Override
     public float getHealth() { return currentHealth; }
-
     @Override
     public float getMaxHealth() { return maxHealth; }
+
+    public Vector2 getPosition() { return position; }
+    public Direction getCurrentDirection() { return currentDirection; }
+    public EnemyState getCurrentState() { return currentState; }
+
+    // (BARU) Getter agar komponen serangan bisa mengakses target dan screen
+    public Player getTarget() {
+        return target;
+    }
+
+    public GameScreen getScreen() {
+        return screen;
+    }
 }

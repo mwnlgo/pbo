@@ -100,4 +100,12 @@ public class EnemyProjectile {
             texture = null;
         }
     }
+
+    public float getDamage() {
+        return damage;
+    }
+
+    public void setActive(boolean b) {
+        this.active = b;
+    }
 }

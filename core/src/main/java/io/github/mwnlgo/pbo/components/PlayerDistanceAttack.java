@@ -4,53 +4,68 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.TimeUtils;
 import io.github.mwnlgo.pbo.entities.Player;
-import io.github.mwnlgo.pbo.entities.Projectile; // Pastikan ini mengacu pada Projectile pemain
+import io.github.mwnlgo.pbo.entities.Projectile;
 import io.github.mwnlgo.pbo.enums.Direction;
 
+/**
+ * Komponen serangan jarak jauh yang menembakkan proyektil.
+ * Logika serangan ini berbasis cooldown, bukan hitbox sementara.
+ */
 public class PlayerDistanceAttack extends PlayerAttackComponent {
     private static final String TAG = "PlayerDistanceAttack";
 
-    public PlayerDistanceAttack(Player player) {
-        super(player);
-        // Cooldown serangan jarak jauh pemain, bisa disesuaikan.
-        // Cooldown 0.5f berarti bisa menyerang setiap 0.5 detik.
-        setCooldown(0.5f);
+    // Variabel untuk mengelola cooldown serangan jarak jauh
+    private float cooldown;
+    private long lastAttackTime;
+
+    /**
+     * Konstruktor untuk serangan jarak jauh pemain.
+     * @param player Pemain yang memiliki serangan ini.
+     * @param damageAmount Jumlah damage yang akan diberikan oleh proyektil.
+     * @param attackDuration Durasi serangan (tidak digunakan untuk proyektil, bisa diisi 0).
+     */
+    public PlayerDistanceAttack(Player player, float damageAmount, float attackDuration) {
+        // (PERUBAHAN) Panggil konstruktor kelas dasar dengan semua parameter yang diperlukan.
+        super(player, damageAmount, attackDuration);
+
+        // Atur cooldown spesifik untuk serangan ini
+        this.cooldown = 0.5f; // Bisa menyerang setiap 0.5 detik
+        this.lastAttackTime = 0L;
     }
 
     @Override
     public void attack() {
-        // Periksa apakah cooldown sudah berakhir sebelum mengizinkan serangan baru.
-        // TimeUtils.millis() memberikan waktu saat ini dalam milidetik.
-        // getCooldown() * 1000 mengubah cooldown dari detik ke milidetik.
-        if (TimeUtils.millis() - getLastAttackTime() > getCooldown() * 1000) {
+        // Logika cooldown sekarang dikelola di dalam kelas ini.
+        if (TimeUtils.millis() - lastAttackTime > cooldown * 1000) {
             Gdx.app.log(TAG, "Distance Attack initiated!");
 
-            // Dapatkan posisi pemain dari objek Player yang terhubung.
-            Vector2 playerPos = getPlayer().getPosition();
-            // Dapatkan arah hadap pemain untuk menentukan arah proyektil.
-            // PENTING: Pastikan kelas Player memiliki metode public Direction getCurrentDirection()
-            Direction playerDir = getPlayer().getCurrentDirection();
+            // Panggil metode 'attack' dari kelas dasar untuk membersihkan daftar hit
+            // dan menangani status dasar jika diperlukan.
+            super.attack();
 
-            // Buat objek proyektil baru.
-            // Proyektil memerlukan posisi awal (posisi pemain), arah tembakan, dan referensi ke GameScreen
-            // agar bisa berinteraksi dengan dunia game (misalnya, menambahkan dirinya ke daftar proyektil).
+            Vector2 playerPos = player.getPosition();
+            Direction playerDir = player.getCurrentDirection();
+
+            // Buat proyektil baru dengan damage yang sesuai
             Projectile playerProjectile = new Projectile(
                 playerPos.x,
                 playerPos.y,
                 playerDir,
-                getPlayer().getScreen() // Mengakses GameScreen melalui Player
+                player.getScreen(),
+                this.damageAmount // Menggunakan damageAmount dari kelas dasar
             );
 
-            // Tambahkan proyektil yang baru dibuat ke daftar proyektil pemain di GameScreen.
-            // PENTING: Pastikan GameScreen memiliki metode public void spawnPlayerProjectile(Projectile projectile)
-            getPlayer().getScreen().spawnPlayerProjectile(playerProjectile);
+            // Tambahkan proyektil ke dunia game
+            player.getScreen().spawnPlayerProjectile(playerProjectile);
 
-            // Setel waktu serangan terakhir ke waktu saat ini untuk memulai cooldown.
-            setLastAttackTime(TimeUtils.millis());
-        } else {
-            // Opsional: Logging untuk debug ketika serangan diblokir oleh cooldown.
-            // Gdx.app.log(TAG, "Distance Attack on cooldown. Remaining: " +
-            //         (getCooldown() - (TimeUtils.millis() - getLastAttackTime()) / 1000f) + "s");
+            // Perbarui waktu serangan terakhir untuk memulai cooldown
+            this.lastAttackTime = TimeUtils.millis();
         }
+    }
+
+    @Override
+    public void update(float delta) {
+        // Metode update dari kelas dasar mengelola timer hitbox, yang tidak kita gunakan di sini.
+        // Jadi, kita bisa membiarkannya kosong agar tidak ada logika yang berjalan.
     }
 }

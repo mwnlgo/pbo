@@ -2,14 +2,21 @@ package io.github.mwnlgo.pbo.Screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import io.github.mwnlgo.pbo.Main;
+import io.github.mwnlgo.pbo.components.EnemyMeleeAttack;
+import io.github.mwnlgo.pbo.components.PlayerAttackComponent;
+import io.github.mwnlgo.pbo.components.PlayerMeleeAttack;
 import io.github.mwnlgo.pbo.entities.*;
+import io.github.mwnlgo.pbo.interfaces.IMeleeAttacker; // (BARU) Import interface
 
 public class GameScreen implements Screen {
 
@@ -27,29 +34,35 @@ public class GameScreen implements Screen {
 
     private boolean assetsLoaded = false;
 
+    private ShapeRenderer shapeRenderer;
+
+    private Array<EnemyMeleeAttack> hitByEnemyAttacks;
+
     public GameScreen(Main game) {
         this.game = game;
         this.batch = game.getBatch();
 
         camera = new OrthographicCamera();
-        viewport = new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), camera);
+        viewport = new FitViewport(1280, 720, camera);
         camera.position.set(viewport.getWorldWidth() / 2, viewport.getWorldHeight() / 2, 0);
 
-        this.worldWidth = viewport.getWorldWidth();
-        this.worldHeight = viewport.getWorldHeight();
+        this.worldWidth = 3000;
+        this.worldHeight = 3000;
 
         allEnemies = new Array<>();
         enemyProjectiles = new Array<>();
         playerProjectiles = new Array<>();
+        hitByEnemyAttacks = new Array<>();
     }
 
     @Override
     public void show() {
         if (!assetsLoaded) {
             Gdx.app.log("GameScreen", "Loading assets...");
-
+            shapeRenderer = new ShapeRenderer();
             player = new Player(100, 100, this);
 
+            // Tambahkan semua jenis musuh
             allEnemies.add(new EnemyA(300, 300, player, this));
             allEnemies.add(new EnemyA(500, 200, player, this));
             allEnemies.add(new EnemyB(700, 400, player, this));
@@ -63,7 +76,6 @@ public class GameScreen implements Screen {
     }
 
     public void addEnemyProjectile(EnemyProjectile projectile) {
-        Gdx.app.log("GameScreen", "Enemy projectile added at: " + projectile.getBounds().x + ", " + projectile.getBounds().y);
         enemyProjectiles.add(projectile);
     }
 
@@ -71,22 +83,14 @@ public class GameScreen implements Screen {
         playerProjectiles.add(projectile);
     }
 
-    @Override
-    public void render(float delta) {
-        Gdx.gl.glClearColor(0, 0, 0, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-        if (!assetsLoaded) return;
+    public void update(float delta) {
+        if (!assetsLoaded || !player.isAlive()) return;
 
         player.update(delta);
 
         for (int i = allEnemies.size - 1; i >= 0; i--) {
             Enemy enemy = allEnemies.get(i);
             enemy.update(delta);
-            if (!enemy.isAlive()) {
-                enemy.dispose();
-                allEnemies.removeIndex(i);
-            }
         }
 
         for (int i = enemyProjectiles.size - 1; i >= 0; i--) {
@@ -107,30 +111,127 @@ public class GameScreen implements Screen {
             }
         }
 
-        // Update camera mengikuti pemain
+        checkCollisions();
+
         camera.position.set(player.getPosition().x, player.getPosition().y, 0);
-        camera.position.x = Math.max(viewport.getWorldWidth() / 2, Math.min(worldWidth - viewport.getWorldWidth() / 2, camera.position.x));
-        camera.position.y = Math.max(viewport.getWorldHeight() / 2, Math.min(worldHeight - viewport.getWorldHeight() / 2, camera.position.y));
         camera.update();
+    }
+
+    private void checkCollisions() {
+        // --- Cek Tabrakan Serangan Melee Pemain vs Musuh ---
+        PlayerAttackComponent playerAttack = player.getCurrentAttack();
+        if (playerAttack.isActive() && playerAttack instanceof PlayerMeleeAttack) {
+            Rectangle attackHitbox = playerAttack.getAttackHitbox();
+            for (Enemy enemy : allEnemies) {
+                if (enemy.isAlive() && !playerAttack.hasHit(enemy) && attackHitbox.overlaps(enemy.getBounds())) {
+                    enemy.takeDamage(playerAttack.getDamageAmount());
+                    playerAttack.addHitEntity(enemy);
+                }
+            }
+        }
+
+        // --- Cek Tabrakan Proyektil Musuh vs Pemain ---
+        for (EnemyProjectile projectile : enemyProjectiles) {
+            if (projectile.isActive() && projectile.getBounds().overlaps(player.getBounds())) {
+                player.takeDamage(projectile.getDamage());
+                projectile.setActive(false);
+            }
+        }
+
+        // (PERBAIKAN) --- Cek Tabrakan Serangan Melee Musuh vs Pemain ---
+        for (Enemy enemy : allEnemies) {
+            // (PERUBAHAN) Cek apakah musuh ini adalah tipe penyerang melee menggunakan interface.
+            // Ini akan berlaku untuk EnemyA, EnemyB, dan musuh melee lainnya di masa depan.
+            if (enemy instanceof IMeleeAttacker) {
+                EnemyMeleeAttack enemyAttack = ((IMeleeAttacker) enemy).getMeleeAttack();
+
+                if (enemyAttack.isActive() && !hitByEnemyAttacks.contains(enemyAttack, true) && enemyAttack.getAttackHitbox().overlaps(player.getBounds())) {
+                    player.takeDamage(enemyAttack.getDamageAmount());
+                    hitByEnemyAttacks.add(enemyAttack);
+                }
+
+                if (!enemyAttack.isActive() && hitByEnemyAttacks.contains(enemyAttack, true)) {
+                    hitByEnemyAttacks.removeValue(enemyAttack, true);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void render(float delta) {
+        update(delta);
+
+        Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        if (!assetsLoaded) return;
 
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
-
-        player.render(batch);
-
         for (Enemy enemy : allEnemies) {
             enemy.render(batch);
         }
-
+        if (player.isAlive()) {
+            player.render(batch);
+        }
         for (EnemyProjectile p : enemyProjectiles) {
             p.render(batch);
         }
-
         for (Projectile p : playerProjectiles) {
             p.render(batch);
         }
-
         batch.end();
+
+        drawDebugShapes();
+    }
+
+    private void drawDebugShapes() {
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+
+        shapeRenderer.setColor(Color.RED);
+        shapeRenderer.rect(player.getBounds().x, player.getBounds().y, player.getBounds().width, player.getBounds().height);
+
+        PlayerAttackComponent playerAttack = player.getCurrentAttack();
+        if (playerAttack.isActive() && playerAttack instanceof PlayerMeleeAttack) {
+            shapeRenderer.setColor(Color.YELLOW);
+            shapeRenderer.rect(playerAttack.getAttackHitbox().x, playerAttack.getAttackHitbox().y, playerAttack.getAttackHitbox().width, playerAttack.getAttackHitbox().height);
+        }
+
+        for (Enemy enemy : allEnemies) {
+            shapeRenderer.setColor(Color.LIME);
+            shapeRenderer.rect(enemy.getBounds().x, enemy.getBounds().y, enemy.getBounds().width, enemy.getBounds().height);
+
+            // (PERUBAHAN) Gambar hitbox serangan jika musuh adalah penyerang melee.
+            // Ini akan berlaku untuk semua kelas yang mengimplementasikan IMeleeAttacker.
+            if (enemy instanceof IMeleeAttacker) {
+                EnemyMeleeAttack enemyAttack = ((IMeleeAttacker) enemy).getMeleeAttack();
+                if (enemyAttack.isActive()) {
+                    shapeRenderer.setColor(Color.ORANGE);
+                    shapeRenderer.rect(enemyAttack.getAttackHitbox().x, enemyAttack.getAttackHitbox().y, enemyAttack.getAttackHitbox().width, enemyAttack.getAttackHitbox().height);
+                }
+            }
+        }
+
+        // (BARU) Gambar hitbox untuk proyektil musuh (misalnya warna magenta/pink)
+        shapeRenderer.setColor(Color.MAGENTA);
+        for (EnemyProjectile projectile : enemyProjectiles) {
+            if (projectile.isActive()) {
+                Rectangle projectileBounds = projectile.getBounds();
+                shapeRenderer.rect(projectileBounds.x, projectileBounds.y, projectileBounds.width, projectileBounds.height);
+            }
+        }
+
+// (BARU) Gambar hitbox untuk proyektil pemain (misalnya warna cyan/biru muda)
+        shapeRenderer.setColor(Color.CYAN);
+        for (Projectile projectile : playerProjectiles) {
+            if (projectile.isActive()) {
+                Rectangle projectileBounds = projectile.getBounds();
+                shapeRenderer.rect(projectileBounds.x, projectileBounds.y, projectileBounds.width, projectileBounds.height);
+            }
+        }
+
+        shapeRenderer.end();
     }
 
     @Override
@@ -144,33 +245,19 @@ public class GameScreen implements Screen {
 
     @Override
     public void dispose() {
+        if(shapeRenderer != null) shapeRenderer.dispose();
         if (player != null) player.dispose();
-
         for (Enemy e : allEnemies) e.dispose();
         allEnemies.clear();
-
         for (EnemyProjectile p : enemyProjectiles) p.dispose();
         enemyProjectiles.clear();
-
         for (Projectile p : playerProjectiles) p.dispose();
         playerProjectiles.clear();
-
         Gdx.app.log("GameScreen", "Disposed GameScreen resources.");
     }
 
-    public OrthographicCamera getCamera() {
-        return camera;
-    }
-
-    public float getWorldWidth() {
-        return worldWidth;
-    }
-
-    public float getWorldHeight() {
-        return worldHeight;
-    }
-
-    public Array<Enemy> getAllEnemies() {
-        return allEnemies;
-    }
+    public OrthographicCamera getCamera() { return camera; }
+    public float getWorldWidth() { return worldWidth; }
+    public float getWorldHeight() { return worldHeight; }
+    public Array<Enemy> getAllEnemies() { return allEnemies; }
 }

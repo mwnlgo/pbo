@@ -9,40 +9,40 @@ import io.github.mwnlgo.pbo.enums.Direction;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.utils.Array;
 
-public class Projectile { // Nama kelas Projectile karena ini proyektil pemain
+public class Projectile {
     private Vector2 position;
     private Vector2 velocity;
     private Texture texture;
-    private float speed = 500f; // Kecepatan proyektil pemain
-    private float damage = 25f; // Damage proyektil pemain
+    private float speed = 500f;
+    private float damage; // DIUBAH: Tidak ada nilai default, akan diisi oleh konstruktor
     private GameScreen screen;
     private Rectangle bounds;
-    private boolean active; // Status aktif proyektil
-    private Direction direction; // Arah proyektil
+    private boolean active;
 
-    public Projectile(float x, float y, Direction direction, GameScreen screen) {
+    /**
+     * Konstruktor untuk proyektil.
+     * @param x Posisi awal X.
+     * @param y Posisi awal Y.
+     * @param direction Arah proyektil.
+     * @param screen Referensi ke GameScreen untuk interaksi dunia.
+     * @param damageAmount Jumlah damage yang dibawa oleh proyektil ini.
+     */
+    public Projectile(float x, float y, Direction direction, GameScreen screen, float damageAmount) { // DIUBAH: Menambahkan damageAmount
         this.position = new Vector2(x, y);
-        // Ganti dengan path aset proyektil pemain Anda
-        this.texture = new Texture("player/player_projectile.png");
+        this.texture = new Texture("player/player_projectile.png"); // Ganti dengan path aset Anda
         this.screen = screen;
         this.active = true;
-        this.direction = direction;
 
-        // Tentukan kecepatan berdasarkan arah pemain
+        // DIUBAH: Mengisi damage dari parameter konstruktor
+        this.damage = damageAmount;
+        Gdx.app.log("Projectile", "Projectile created with " + this.damage + " damage.");
+
         this.velocity = new Vector2();
         switch (direction) {
-            case UP:
-                velocity.set(0, 1).scl(speed);
-                break;
-            case DOWN:
-                velocity.set(0, -1).scl(speed);
-                break;
-            case LEFT:
-                velocity.set(-1, 0).scl(speed);
-                break;
-            case RIGHT:
-                velocity.set(1, 0).scl(speed);
-                break;
+            case UP:    velocity.set(0, 1).scl(speed); break;
+            case DOWN:  velocity.set(0, -1).scl(speed); break;
+            case LEFT:  velocity.set(-1, 0).scl(speed); break;
+            case RIGHT: velocity.set(1, 0).scl(speed); break;
         }
 
         this.bounds = new Rectangle(x, y, texture.getWidth(), texture.getHeight());
@@ -52,18 +52,17 @@ public class Projectile { // Nama kelas Projectile karena ini proyektil pemain
         if (!active) return;
 
         position.mulAdd(velocity, delta);
-        bounds.setPosition(position.x - bounds.width / 2f, position.y - bounds.height / 2f); // Sesuaikan posisi bounds ke tengah
+        bounds.setPosition(position.x - bounds.width / 2f, position.y - bounds.height / 2f);
 
         // Periksa tabrakan dengan musuh
-        // Penting: Anda perlu mengelola daftar semua musuh di GameScreen
-        // Contoh: Iterasi melalui daftar musuh di GameScreen
-        Array<Enemy> allEnemies = screen.getAllEnemies(); // Anda perlu menambahkan metode ini di GameScreen
+        // Asumsi GameScreen memiliki metode untuk mendapatkan daftar musuh
+        Array<Enemy> allEnemies = screen.getAllEnemies();
         for (Enemy enemy : allEnemies) {
             if (active && enemy.isAlive() && bounds.overlaps(enemy.getBounds())) {
-                enemy.takeDamage(damage);
+                enemy.takeDamage(this.damage); // Gunakan 'this.damage'
                 active = false; // Proyektil non-aktif setelah mengenai musuh
-                Gdx.app.log("Projectile", "Projectile hit enemy for " + damage + " damage!");
-                break; // Hentikan iterasi setelah mengenai satu musuh
+                Gdx.app.log("Projectile", "Projectile hit enemy for " + this.damage + " damage!");
+                break;
             }
         }
 
@@ -76,7 +75,6 @@ public class Projectile { // Nama kelas Projectile karena ini proyektil pemain
 
     public void render(SpriteBatch batch) {
         if (active) {
-            // Gambar proyektil di tengah posisinya
             batch.draw(texture, position.x - texture.getWidth() / 2f, position.y - texture.getHeight() / 2f);
         }
     }

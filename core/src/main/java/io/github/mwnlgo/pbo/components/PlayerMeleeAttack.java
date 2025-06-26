@@ -1,23 +1,74 @@
 package io.github.mwnlgo.pbo.components;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.utils.TimeUtils;
+import com.badlogic.gdx.math.Rectangle;
 import io.github.mwnlgo.pbo.entities.Player;
+import io.github.mwnlgo.pbo.enums.Direction;
 
+/**
+ * Implementasi serangan jarak dekat (melee) untuk pemain.
+ * Hitbox serangan ini akan muncul secara dinamis di depan pemain berdasarkan arah hadap.
+ */
 public class PlayerMeleeAttack extends PlayerAttackComponent {
+
     private static final String TAG = "PlayerMeleeAttack";
 
-    public PlayerMeleeAttack (Player player) {
-        super(player);
-        setCooldown(0.5f);
+    // Ukuran hitbox serangan
+    private final float MELEE_ATTACK_WIDTH = 100f; // Lebar ayunan pedang
+    private final float MELEE_ATTACK_HEIGHT = 100f; // Tinggi ayunan pedang
+
+    /**
+     * Konstruktor untuk serangan melee.
+     * @param player Pemain yang memiliki serangan.
+     * @param damageAmount Jumlah damage yang dihasilkan.
+     * @param attackDuration Durasi aktifnya hitbox serangan ini.
+     */
+    public PlayerMeleeAttack(Player player, float damageAmount, float attackDuration) {
+        // (PERUBAHAN) Panggil konstruktor kelas dasar dengan semua parameter yang diperlukan.
+        super(player, damageAmount, attackDuration);
     }
+
     @Override
     public void attack() {
-        if (TimeUtils.millis() - getLastAttackTime() > getCooldown() * 1000) {
-            Gdx.app.log(TAG, "Melee Attack success!");
+        // Panggil metode 'attack' dari kelas dasar untuk membersihkan daftar hit
+        // dan mengaktifkan status serangan.
+        super.attack();
+        if(!isActive) return; // Jika super.attack() mencegah serangan, hentikan.
 
+        Gdx.app.log(TAG, "Melee attack performed towards " + player.getCurrentDirection());
 
-            setLastAttackTime(TimeUtils.millis());
+        // --- Logika Hitbox Dinamis Berdasarkan Arah ---
+        Direction dir = player.getCurrentDirection();
+        Rectangle playerBounds = player.getBounds(); // Gunakan bounds pemain sebagai acuan
+        float hitboxX = 0, hitboxY = 0;
+
+        // Hitung posisi hitbox berdasarkan arah pemain
+        switch (dir) {
+            case UP:
+                hitboxX = playerBounds.x + (playerBounds.width / 2) - (MELEE_ATTACK_WIDTH / 2);
+                hitboxY = playerBounds.y + playerBounds.height; // Tepat di atas pemain
+                break;
+            case DOWN:
+                hitboxX = playerBounds.x + (playerBounds.width / 2) - (MELEE_ATTACK_WIDTH / 2);
+                hitboxY = playerBounds.y - MELEE_ATTACK_HEIGHT; // Tepat di bawah pemain
+                break;
+            case LEFT:
+                hitboxX = playerBounds.x - MELEE_ATTACK_WIDTH; // Tepat di kiri pemain
+                hitboxY = playerBounds.y + (playerBounds.height / 2) - (MELEE_ATTACK_HEIGHT / 2);
+                break;
+            case RIGHT:
+                hitboxX = playerBounds.x + playerBounds.width; // Tepat di kanan pemain
+                hitboxY = playerBounds.y + (playerBounds.height / 2) - (MELEE_ATTACK_HEIGHT / 2);
+                break;
         }
+
+        // Atur posisi dan ukuran hitbox serangan
+        this.attackHitbox.set(hitboxX, hitboxY, MELEE_ATTACK_WIDTH, MELEE_ATTACK_HEIGHT);
+    }
+
+    @Override
+    public void update(float delta) {
+        // Panggil update dari kelas dasar untuk mengelola timer dan status 'isActive'
+        super.update(delta);
     }
 }

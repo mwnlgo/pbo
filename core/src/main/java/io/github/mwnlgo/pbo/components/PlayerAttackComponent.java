@@ -1,48 +1,42 @@
 package io.github.mwnlgo.pbo.components;
 
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import io.github.mwnlgo.pbo.entities.Player;
+import io.github.mwnlgo.pbo.interfaces.IDamageable;
+import java.util.HashSet;
 
-public abstract class PlayerAttackComponent {
-    private Player player;
-    private float cooldown;
-    private float lastAttackTime;
+/**
+ * Komponen serangan yang spesifik untuk PEMAIN.
+ * Menambahkan logika untuk mencegah satu serangan mengenai musuh yang sama berkali-kali.
+ */
+public abstract class PlayerAttackComponent extends AttackComponent {
 
-    public PlayerAttackComponent(Player player) {
+    protected Player player;
+
+    // Ini adalah logika yang spesifik untuk pemain
+    protected HashSet<IDamageable> hitEntitiesThisAttack;
+
+    public PlayerAttackComponent(Player player, float damageAmount, float attackDuration) {
+        // Panggil konstruktor kelas dasar
+        super(damageAmount, attackDuration);
         this.player = player;
+        this.hitEntitiesThisAttack = new HashSet<>();
     }
 
-    public abstract void attack();
-
-    public void update(float delta) {
-
+    // Metode spesifik untuk pemain
+    public void addHitEntity(IDamageable entity) {
+        hitEntitiesThisAttack.add(entity);
     }
 
-    public void render(SpriteBatch batch) {
-
+    public boolean hasHit(IDamageable entity) {
+        return hitEntitiesThisAttack.contains(entity);
     }
 
-    public Player getPlayer() {
-        return player;
-    }
-
-    public float getCooldown() {
-        return cooldown;
-    }
-
-    public void setCooldown(float cooldown) {
-        if (cooldown < 0) {
-            this.cooldown = 0;
-        } else {
-        this.cooldown = cooldown;
-        }
-    }
-
-    public float getLastAttackTime() {
-        return lastAttackTime;
-    }
-
-    public void setLastAttackTime(float lastAttackTime) {
-        this.lastAttackTime = lastAttackTime;
+    // Saat serangan baru dimulai, bersihkan daftar entitas yang sudah terkena
+    @Override
+    public void attack() {
+        if(isActive) return; // Mencegah serangan tumpang tindih
+        this.hitEntitiesThisAttack.clear();
+        this.isActive = true;
+        this.attackTimer = this.attackDuration;
     }
 }

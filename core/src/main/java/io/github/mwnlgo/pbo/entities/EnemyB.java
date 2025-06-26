@@ -1,82 +1,70 @@
 package io.github.mwnlgo.pbo.entities;
 
-import com.badlogic.gdx.Gdx; // Diperlukan untuk logging
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import io.github.mwnlgo.pbo.Screens.GameScreen;
+import io.github.mwnlgo.pbo.components.EnemyMeleeAttack;
 import io.github.mwnlgo.pbo.enums.Direction;
 import io.github.mwnlgo.pbo.enums.EnemyState;
+import io.github.mwnlgo.pbo.interfaces.IMeleeAttacker;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class EnemyB extends Enemy {
+// (BARU) Implementasikan interface IMeleeAttacker
+public class EnemyB extends Enemy implements IMeleeAttacker {
 
-    private final float detectionRange = 450f;
-    private final float attackRange = 50f;
-    private float hurtDuration = 0.2f;
-    private float hurtTimer = 0f;
+    private final float detectionRange = 400f;
+    private final float attackRange = 100f; // Demon punya jangkauan sedikit lebih jauh
 
-    // --- Variabel baru untuk Serangan ---
-    private final float attackCooldown = 1.2f; // Cooldown antar serangan (detik), bisa lebih lama dari Skeleton
-    private float attackTimer = 0f; // Timer untuk cooldown serangan
-    private boolean hasAttackedInCurrentAnimation = false; // Flag untuk memastikan damage hanya sekali per animasi
+    // Komponen yang akan mengelola logika serangan melee
+    private EnemyMeleeAttack meleeAttack;
 
     public EnemyB(float x, float y, Player target, GameScreen screen) {
-        super(x, y, target, screen);
+        // Panggil konstruktor kelas dasar dengan nilai spesifik untuk EnemyB
+        super(x, y, target, screen,
+            100f,   // maxHealth
+            100f,   // speed
+            40f,    // hitboxWidth
+            60f,    // hitboxHeight
+            -20f,   // hitboxOffsetX
+            -30f);  // hitboxOffsetY
 
-        this.speed = 100f; // Kecepatan sedikit berbeda dari Skeleton
-        this.maxHealth = 100f; // Health sedikit berbeda
-        this.currentHealth = this.maxHealth;
+        // Inisialisasi komponen serangan dengan damage 15 dan durasi hitbox 0.5 detik
+        this.meleeAttack = new EnemyMeleeAttack(this, 15f, 0.5f);
 
-        loadAnimations(); // Muat animasi di konstruktor
-
-        // Setel bounds berdasarkan frame IDLE awal
-        TextureRegion initialFrame = animations.get(EnemyState.IDLE).get(Direction.DOWN).getKeyFrame(0);
-        this.bounds = new Rectangle(x, y, initialFrame.getRegionWidth(), initialFrame.getRegionHeight());
+        loadAnimations();
 
         this.currentState = EnemyState.IDLE;
-        this.currentDirection = Direction.DOWN; // Inisialisasi arah awal
+        this.currentDirection = Direction.DOWN;
     }
 
-    /**
-     * Memuat semua animasi spesifik untuk EnemyB (idle, berjalan, menyerang).
-     */
+    // Metode loadAnimations() Anda sudah baik dan tidak perlu diubah.
     private void loadAnimations() {
+        // ... (kode loadAnimations Anda yang sudah ada) ...
         // Animasi IDLE
         Map<Direction, Animation<TextureRegion>> idleAnims = new HashMap<>();
-        idleAnims.put(Direction.DOWN, loadAnimationFromSheet("demon/idle_demon_right.png", 6, 1, 0.25f)); // Asumsi idle_demon_right cocok untuk down
-        idleAnims.put(Direction.UP, loadAnimationFromSheet("demon/idle_demon_left.png", 6, 1, 0.25f)); // Asumsi idle_demon_left cocok untuk up
+        idleAnims.put(Direction.DOWN, loadAnimationFromSheet("demon/idle_demon_right.png", 6, 1, 0.25f));
+        idleAnims.put(Direction.UP, loadAnimationFromSheet("demon/idle_demon_left.png", 6, 1, 0.25f));
         idleAnims.put(Direction.LEFT, loadAnimationFromSheet("demon/idle_demon_left.png", 6, 1, 0.25f));
         idleAnims.put(Direction.RIGHT, loadAnimationFromSheet("demon/idle_demon_right.png", 6, 1, 0.25f));
         this.animations.put(EnemyState.IDLE, idleAnims);
 
         // Animasi CHASING (WALK)
         Map<Direction, Animation<TextureRegion>> walkAnims = new HashMap<>();
-        walkAnims.put(Direction.DOWN, loadAnimationFromSheet("demon/walk_demon_left.png", 12, 1, 0.15f)); // Asumsi walk_demon_left cocok untuk down
-        walkAnims.put(Direction.UP, loadAnimationFromSheet("demon/walk_demon_right.png", 12, 1, 0.15f)); // Asumsi walk_demon_right cocok untuk up
+        walkAnims.put(Direction.DOWN, loadAnimationFromSheet("demon/walk_demon_left.png", 12, 1, 0.15f));
+        walkAnims.put(Direction.UP, loadAnimationFromSheet("demon/walk_demon_right.png", 12, 1, 0.15f));
         walkAnims.put(Direction.LEFT, loadAnimationFromSheet("demon/walk_demon_left.png", 12, 1, 0.15f));
         walkAnims.put(Direction.RIGHT, loadAnimationFromSheet("demon/walk_demon_right.png", 12, 1, 0.15f));
         this.animations.put(EnemyState.CHASING, walkAnims);
 
         // --- Tambahkan Animasi ATTACKING untuk Demon ---
         Map<Direction, Animation<TextureRegion>> attackAnims = new HashMap<>();
-        // Pastikan Anda memiliki sprite sheet untuk animasi serangan Demon.
-        // Sesuaikan path, cols, rows, dan frameDuration sesuai aset Anda.
-        // Animasi serangan umumnya PlayMode.NORMAL (sekali putar)
-
-        Animation<TextureRegion> attackDown = loadAnimationFromSheet("demon/attack_demon_right.png", 15, 1, 0.1f); // Contoh: 11 frame
-        attackDown.setPlayMode(Animation.PlayMode.NORMAL);
-        attackAnims.put(Direction.DOWN, attackDown);
-
-        Animation<TextureRegion> attackUp = loadAnimationFromSheet("demon/attack_demon_left.png", 15, 1, 0.1f); // Asumsi: pakai left/right jika tidak ada aset khusus untuk up
-        attackUp.setPlayMode(Animation.PlayMode.NORMAL);
-        attackAnims.put(Direction.UP, attackUp);
-
         Animation<TextureRegion> attackLeft = loadAnimationFromSheet("demon/attack_demon_left.png", 15, 1, 0.1f);
         attackLeft.setPlayMode(Animation.PlayMode.NORMAL);
+        attackAnims.put(Direction.DOWN, attackLeft); // Asumsi animasi sama
+        attackAnims.put(Direction.UP, attackLeft);
         attackAnims.put(Direction.LEFT, attackLeft);
 
         Animation<TextureRegion> attackRight = loadAnimationFromSheet("demon/attack_demon_right.png", 15, 1, 0.1f);
@@ -87,116 +75,72 @@ public class EnemyB extends Enemy {
     }
 
     @Override
-    protected void enterHurtState() {
-        this.currentState = EnemyState.HURT;
-        this.hurtTimer = hurtDuration;
-        this.stateTimer = 0; // Reset state timer untuk memulai animasi hurt dari awal jika ada
-    }
-
-    /**
-     * Metode utama untuk logika AI musuh Demon. Dipanggil setiap update.
-     * @param delta Waktu dalam detik sejak frame terakhir.
-     */
-    @Override
     protected void updateAI(float delta) {
-        // Update cooldown serangan terlepas dari state
-        if (attackTimer > 0) {
-            attackTimer -= delta;
+        // Update komponen serangan (untuk mengelola timer hitbox-nya)
+        meleeAttack.update(delta);
+        stateTimer += delta;
+
+        // Abaikan AI jika sedang dalam state non-aktif (HURT atau DEAD)
+        if (currentState == EnemyState.HURT || currentState == EnemyState.DEAD) {
+            if (currentState == EnemyState.HURT && animations.get(currentState).get(currentDirection).isAnimationFinished(stateTimer)) {
+                currentState = EnemyState.IDLE;
+            }
+            return;
         }
 
+        updateDirection();
+
+        // Logika state machine yang menggunakan komponen serangan
         switch (currentState) {
             case IDLE:
-                if (isPlayerInRange(detectionRange)) {
-                    currentState = EnemyState.CHASING;
-                    stateTimer = 0; // Reset timer saat beralih state
-                }
-                break;
-
             case CHASING:
-                chase(delta); // Lakukan pergerakan mengejar
-                if (isPlayerInRange(attackRange) && attackTimer <= 0) { // Cek range dan cooldown
+                if (isPlayerInRange(attackRange) && !meleeAttack.isActive()) {
                     currentState = EnemyState.ATTACKING;
-                    stateTimer = 0; // Reset timer untuk animasi serangan
-                    hasAttackedInCurrentAnimation = false; // Reset flag serangan untuk animasi baru
-                } else if (!isPlayerInRange(detectionRange * 1.2f)) { // Jika pemain terlalu jauh
+                } else if (isPlayerInRange(detectionRange)) {
+                    currentState = EnemyState.CHASING;
+                    chase(delta);
+                } else {
                     currentState = EnemyState.IDLE;
-                    stateTimer = 0;
                 }
                 break;
 
             case ATTACKING:
-                // Dapatkan animasi serangan saat ini
-                Animation<TextureRegion> currentAttackAnim = animations.get(EnemyState.ATTACKING).get(currentDirection);
-
-                // --- Logika Memicu Damage ---
-                // PENTING: Sesuaikan '0.4f' ini dengan titik di mana animasi serangan musuh mengenai target.
-                // Ini adalah persentase waktu animasi. Jika animasi 1 detik, 0.4f berarti di 0.4 detik.
-                // Demon mungkin memiliki titik serang yang lebih cepat atau lebih lambat.
-                float attackHitTime = currentAttackAnim.getAnimationDuration() * 0.4f;
-
-                if (!hasAttackedInCurrentAnimation && stateTimer >= attackHitTime) {
-                    // Hanya menyerang jika belum menyerang di animasi ini dan sudah mencapai 'titik pukul'
-                    target.takeDamage(15f); // Contoh: Demon memberikan 15 damage (lebih besar dari Skeleton)
-                    hasAttackedInCurrentAnimation = true; // Set flag agar tidak menyerang lagi di animasi yang sama
-                    Gdx.app.log("EnemyB", "Demon attacked player for 15 damage!");
+                // Perintahkan komponen untuk menyerang (mengaktifkan hitbox)
+                meleeAttack.attack();
+                // Setelah animasi serangan selesai, kembali ke state lain
+                if (animations.get(EnemyState.ATTACKING).get(currentDirection).isAnimationFinished(stateTimer)) {
+                    currentState = EnemyState.CHASING;
                 }
-
-                // Cek apakah animasi serangan sudah selesai
-                if (currentAttackAnim.isAnimationFinished(stateTimer)) {
-                    attackTimer = attackCooldown; // Mulai cooldown setelah serangan selesai
-                    if (isPlayerInRange(attackRange)) { // Jika pemain masih dalam jangkauan
-                        currentState = EnemyState.ATTACKING; // Langsung coba serang lagi (jika cooldown 0)
-                        stateTimer = 0; // Reset timer untuk animasi serangan berikutnya
-                        hasAttackedInCurrentAnimation = false; // Reset flag serangan
-                    } else if (isPlayerInRange(detectionRange)) { // Jika pemain di luar jangkauan serang tapi masih terdeteksi
-                        currentState = EnemyState.CHASING;
-                        stateTimer = 0;
-                    } else { // Jika pemain benar-benar jauh
-                        currentState = EnemyState.IDLE;
-                        stateTimer = 0;
-                    }
-                }
-                break;
-
-            case HURT:
-                hurtTimer -= delta;
-                if (hurtTimer <= 0) {
-                    currentState = EnemyState.CHASING; // Kembali mengejar setelah pulih dari hurt
-                    stateTimer = 0;
-                }
-                break;
-
-            case DEAD:
-                // Tidak melakukan apa-apa, menunggu GameScreen menghapusnya
                 break;
         }
     }
 
-    /**
-     * Memeriksa apakah pemain berada dalam jangkauan tertentu.
-     * @param range Jarak jangkauan.
-     * @return true jika pemain dalam jangkauan, false sebaliknya.
-     */
     private boolean isPlayerInRange(float range) {
-        // Menggunakan dst2 (jarak kuadrat) lebih efisien karena tidak melibatkan akar kuadrat.
         return target.getPosition().dst2(this.position) < range * range;
     }
 
-    /**
-     * Logika untuk mengejar target (pemain).
-     * @param delta Waktu dalam detik sejak frame terakhir.
-     */
     private void chase(float delta) {
-        Vector2 directionToTarget = new Vector2(target.getPosition()).sub(this.position);
-
-        // Menentukan arah visual (animasi) berdasarkan arah dominan ke target
-        if (Math.abs(directionToTarget.x) > Math.abs(directionToTarget.y)) {
-            currentDirection = directionToTarget.x > 0 ? Direction.RIGHT : Direction.LEFT;
-        } else {
-            currentDirection = directionToTarget.y > 0 ? Direction.UP : Direction.DOWN;
+        if (!isPlayerInRange(attackRange * 0.8f)) {
+            Vector2 directionToTarget = new Vector2(target.getPosition()).sub(this.position).nor();
+            position.mulAdd(directionToTarget, speed * delta);
         }
+    }
 
-        directionToTarget.nor(); // Normalisasi vektor arah
-        position.mulAdd(directionToTarget, speed * delta); // Pindahkan musuh
+
+    private void updateDirection() {
+        float dx = target.getPosition().x - this.position.x;
+        float dy = target.getPosition().y - this.position.y;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            this.currentDirection = dx > 0 ? Direction.RIGHT : Direction.LEFT;
+        } else {
+            this.currentDirection = dy > 0 ? Direction.UP : Direction.DOWN;
+        }
+    }
+
+    // (BARU) Implementasi metode dari interface IMeleeAttacker
+    @Override
+    public EnemyMeleeAttack getMeleeAttack() {
+        return this.meleeAttack;
     }
 }
