@@ -28,10 +28,11 @@ import io.github.mwnlgo.pbo.interfaces.IMeleeAttacker;
 public class GameScreen implements Screen {
 
     private int currentWave = 0;
+    private int score = 0;
     private float waveTimer = 0f;
     private float waveInterval = 8f;
     private boolean waitingNextWave = false;
-    private BitmapFont waveFont;
+    private BitmapFont waveFont, scoreFont;
 
     private Main game;
     private OrthographicCamera camera;
@@ -77,7 +78,8 @@ public class GameScreen implements Screen {
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("font/Jersey25-Regular.ttf"));
         FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
         parameter.size = 50; // Ukuran font yang diinginkan
-        waveFont = generator.generateFont(parameter); // Buat font dengan parameter yang telah ditentukan
+        waveFont = generator.generateFont(parameter); // Buat font untuk wave
+        scoreFont = generator.generateFont(parameter); // Buat font untuk skor
         generator.dispose(); // Buang generator setelah font dibuat
 
         shapeRenderer = new ShapeRenderer();
@@ -162,6 +164,7 @@ public class GameScreen implements Screen {
             if (!enemy.isAlive() && enemy.isDeathAnimationFinished()) {
                 enemy.dispose();
                 allEnemies.removeIndex(i);
+                addScore();
             }
         }
 
@@ -288,11 +291,17 @@ public class GameScreen implements Screen {
 
         batch.begin();
         waveFont.draw(batch, "Wave " + currentWave, 50, viewport.getWorldHeight() - 50);
+        scoreFont.draw(batch, "Score: " + score, viewport.getWorldWidth() - 220, viewport.getWorldHeight() - 50);
         batch.end();
-
 
         // --- Langkah 3: Gambar Bentuk Debug (opsional) ---
         drawDebugShapes();
+    }
+
+    // Metode untuk memperbarui skor ketika musuh mati
+    private void addScore() {
+        // Log setiap kali skor bertambah
+        Gdx.app.log("GameScreen", "Score updated: " + ++score);
     }
 
     private void drawDebugShapes() {

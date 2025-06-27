@@ -219,7 +219,6 @@ public abstract class Enemy implements IDamageable {
 
     public Vector2 getPosition() { return position; }
     public Direction getCurrentDirection() { return currentDirection; }
-    public EnemyState getCurrentState() { return currentState; }
 
     public Player getTarget() {
         return target;
