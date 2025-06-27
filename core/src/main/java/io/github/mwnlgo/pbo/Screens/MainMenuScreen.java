@@ -1,6 +1,7 @@
 package io.github.mwnlgo.pbo.Screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
@@ -18,6 +19,7 @@ public class MainMenuScreen implements Screen {
     private OrthographicCamera camera; // Kamera untuk viewport
     private Viewport viewport; // Viewport untuk skala layar
     private BitmapFont font; // Font untuk teks
+    private BitmapFont exitGame;
     // Kita tidak perlu mendeklarasikan SpriteBatch di sini karena akan diambil dari game.getBatch()
 
     private Music backgroundMusic;
@@ -38,6 +40,9 @@ public class MainMenuScreen implements Screen {
         FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
         parameter.size = 72; // Ukuran font yang diinginkan
         font = generator.generateFont(parameter); // Buat font dengan parameter yang telah ditentukan
+
+        parameter.size = 48;
+        exitGame = generator.generateFont(parameter);
         generator.dispose(); // Buang generator setelah font dibuat
     }
 
@@ -68,6 +73,7 @@ public class MainMenuScreen implements Screen {
         // Misalnya, jika viewport 800x480, (1, 1.5f) mungkin terlalu kecil/di pojok.
         // Gunakan posisi relatif atau hitungan dari viewport.getWorldWidth()/2 dan viewport.getWorldHeight()/2
         font.draw(game.getBatch(), "Welcome to The Game!!!\nTap anywhere to begin!", viewport.getWorldWidth() / 2 - 325, viewport.getWorldHeight() / 2 + 50);
+        exitGame.draw((game.getBatch()), "(ESC) for exit <- COWARD ONLY!", viewport.getWorldWidth() / 2 - 325, viewport.getWorldHeight() / 2 - 100);
         game.getBatch().end();
 
         // Cek jika layar disentuh/diklik
@@ -76,6 +82,11 @@ public class MainMenuScreen implements Screen {
             game.setScreen(new GameScreen(game));
             // Penting: Buang resource MainMenuScreen setelah tidak digunakan lagi
             dispose();
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            Gdx.app.exit();
+            Gdx.app.log("I am", "Exitting the game");
         }
     }
 
