@@ -119,7 +119,7 @@ public class GameScreen implements Screen {
         int enemyCount = 3 + waveNumber * 2;
         for (int i = 0; i < enemyCount; i++) {
             float x = 100 + (float)Math.random() * (worldWidth - 200);
-            float y = 100 + (float)Math.random() * (worldHeight - 200);
+            float y = 100 + (float)Math.random() * (worldHeight - 500);
 
             int type = (int)(Math.random() * 3);
             switch (type) {
