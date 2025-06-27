@@ -34,7 +34,7 @@ public class Projectile {
         Gdx.app.log("Projectile", "Projectile created with " + this.damage + " damage.");
 
         // (DIUBAH) Muat animasi dari spritesheet
-        this.animation = loadAnimationFromSheet("player/projectile_ayam.png", 4, 1, 0.1f);
+        this.animation = loadAnimationFromSheet("player/projectile_ayam.png", 2, 2, 0.1f);
         this.animation.setPlayMode(Animation.PlayMode.LOOP);
 
         this.velocity = new Vector2(directionVector).scl(speed);
