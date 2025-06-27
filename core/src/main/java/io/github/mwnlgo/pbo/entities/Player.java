@@ -46,6 +46,8 @@ public class Player implements IDamageable {
     private final float invincibilityDuration = 2.0f; // Durasi 1 detik
     private float invincibilityTimer;
 
+    private static final float SCALE_FACTOR = 2f;
+
     // Sistem Animasi
     private Map<PlayerState, Map<Direction, Animation<TextureRegion>>> animations;
     private PlayerState currentState;
@@ -61,10 +63,10 @@ public class Player implements IDamageable {
         this.position = new Vector2(x, y);
         this.maxHealth = 100f;
         this.currentHealth = this.maxHealth;
-        this.hitboxWidth = 30f;
-        this.hitboxHeight = 32f;
-        this.hitboxOffsetX = -hitboxWidth / 2f;
-        this.hitboxOffsetY = -hitboxHeight / 2f;
+        this.hitboxWidth = 30f * SCALE_FACTOR;  // Perbesar lebar hitbox
+        this.hitboxHeight = 32f * SCALE_FACTOR; // Perbesar tinggi hitbox
+        this.hitboxOffsetX = -this.hitboxWidth / 2f; // Hitung ulang offset X
+        this.hitboxOffsetY = 0f; // Kita set 0 karena di render() kita gambar dari kaki (y=0)
         this.speed = 1000f;
         this.isAlive = true;
         this.isMoving = false;
@@ -248,10 +250,10 @@ public class Player implements IDamageable {
         this.bounds.y = this.position.y + this.hitboxOffsetY;
 
         // Logika untuk membatasi pergerakan di dalam peta
-        float minX = 0; // Tepi kiri peta
-        float maxX = screen.getWorldWidth();  // Tepi kanan peta
+        float minX = 20; // Tepi kiri peta
+        float maxX = screen.getWorldWidth() - 20;  // Tepi kanan peta
         float minY = 0; // Tepi bawah peta
-        float maxY = screen.getWorldHeight(); // Tepi atas peta
+        float maxY = screen.getWorldHeight() - 50; // Tepi atas peta
 
         // Gunakan Math.max dan Math.min untuk "menjepit" posisi
         position.x = Math.max(minX, Math.min(position.x, maxX));
@@ -323,28 +325,31 @@ public class Player implements IDamageable {
         if (currentAnimation == null) return;
 
         boolean isLooping = (currentState != PlayerState.ATTACKING && currentState != PlayerState.HURT && currentState != PlayerState.THROWING && currentState != PlayerState.DEAD);
-
         TextureRegion currentFrame = currentAnimation.getKeyFrame(stateTimer, isLooping);
 
-        float frameWidth = currentFrame.getRegionWidth();
-        float frameHeight = currentFrame.getRegionHeight();
+        // (BARU) Hitung lebar dan tinggi yang sudah diskalakan
+        float scaledWidth = currentFrame.getRegionWidth() * SCALE_FACTOR;
+        float scaledHeight = currentFrame.getRegionHeight() * SCALE_FACTOR;
+
+        // (BARU) Hitung posisi gambar agar sprite tetap di tengah setelah diskalakan
+        float drawX = position.x - scaledWidth / 2f;
+        float drawY = position.y; // Sama seperti enemy, digambar dari basis (kaki)
 
         // Logika untuk membuat sprite berkedip saat kebal
         if (isInvincible) {
-            // Berkedip setiap 0.1 detik dengan mengubah alpha
             if ((int)(invincibilityTimer * 10) % 2 == 0) {
-                batch.setColor(1, 1, 1, 0.5f); // Setengah transparan
+                batch.setColor(1, 1, 1, 0.5f);
             } else {
-                batch.setColor(1, 1, 1, 1f); // Normal
+                batch.setColor(1, 1, 1, 1f);
             }
         }
 
-        batch.draw(currentFrame, position.x - frameWidth / 2f, position.y - frameHeight / 2f);
+        // (DIUBAH) Gunakan versi batch.draw() yang menerima lebar dan tinggi
+        batch.draw(currentFrame, drawX, drawY, scaledWidth, scaledHeight);
 
         // Kembalikan warna batch ke normal setelah menggambar
         batch.setColor(Color.WHITE);
     }
-
     public void dispose() {
         Gdx.app.log("Player", "Disposing player textures...");
         Array<Texture> disposedTextures = new Array<>();

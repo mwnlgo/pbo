@@ -34,6 +34,8 @@ public abstract class Enemy implements IDamageable {
 
     protected Player target;
 
+    private static final float SCALE_FACTOR = 2f;
+
     // Sistem Animasi
     protected Map<EnemyState, Map<Direction, Animation<TextureRegion>>> animations;
     protected EnemyState currentState;
@@ -120,12 +122,17 @@ public abstract class Enemy implements IDamageable {
         boolean looping = (currentState != EnemyState.ATTACKING && currentState != EnemyState.DEAD && currentState != EnemyState.HURT);
         TextureRegion currentFrame = currentAnimation.getKeyFrame(stateTimer, looping);
 
-        float frameWidth = currentFrame.getRegionWidth();
-        float frameHeight = currentFrame.getRegionHeight();
+        // (BARU) Hitung lebar dan tinggi yang sudah diskalakan
+        float scaledWidth = currentFrame.getRegionWidth() * SCALE_FACTOR;
+        float scaledHeight = currentFrame.getRegionHeight() * SCALE_FACTOR;
 
-        batch.draw(currentFrame, position.x - frameWidth / 2f, position.y - frameHeight / 2f);
+        // (BARU) Hitung posisi gambar agar sprite tetap di tengah setelah diskalakan
+        float drawX = position.x - scaledWidth / 2f;
+        float drawY = position.y; // Menggambar dari basis (kaki) karakter agar tidak melayang
+
+        // (DIUBAH) Gunakan versi batch.draw() yang menerima lebar dan tinggi
+        batch.draw(currentFrame, drawX, drawY, scaledWidth, scaledHeight);
     }
-
     public void dispose() {
         Gdx.app.log("Enemy", "Disposing enemy textures...");
         for (Texture texture : managedTextures) {

@@ -24,10 +24,10 @@ public class EnemyC extends Enemy {
         super(x, y, target, screen,
             60f,  // maxHealth
             90f,  // speed
-            32f,  // hitboxWidth
-            48f,  // hitboxHeight
-            -16f, // hitboxOffsetX
-            -24f); // hitboxOffsetY
+            32f* 2f,  // hitboxWidth
+            48f* 2f,  // hitboxHeight
+            -(32f * 2f) / 2f, // hitboxOffsetX
+            20f); // hitboxOffsetY
 
         this.projectileAttack = new EnemyProjectileAttack(this, 15f, 3.0f);
         loadAnimations();

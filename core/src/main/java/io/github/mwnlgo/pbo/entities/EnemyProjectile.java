@@ -82,8 +82,8 @@ public class EnemyProjectile {
 
         TextureRegion currentFrame = animation.getKeyFrame(stateTime);
         batch.draw(currentFrame,
-            position.x - currentFrame.getRegionWidth() / 2f,
-            position.y - currentFrame.getRegionHeight() / 2f);
+            position.x + 33 - currentFrame.getRegionWidth() / 2f,
+            position.y + 20 - currentFrame.getRegionHeight() / 2f);
     }
 
     public boolean isActive() {

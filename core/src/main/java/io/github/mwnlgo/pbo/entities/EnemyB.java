@@ -32,10 +32,10 @@ public class EnemyB extends Enemy implements IMeleeAttacker {
             80f,    // hitboxWidth
             80f,    // hitboxHeight
             -40f,   // hitboxOffsetX
-            -80f);  // hitboxOffsetY
+            0f);  // hitboxOffsetY
 
         // Inisialisasi komponen serangan dengan damage 15 dan durasi hitbox 0.5 detik
-        this.meleeAttack = new EnemyMeleeAttack(this, 15f, 1f, "sound/DemonAttack.wav");
+        this.meleeAttack = new EnemyMeleeAttack(this, 30f, 1f, "sound/DemonAttack.wav");
 
         loadAnimations();
 
