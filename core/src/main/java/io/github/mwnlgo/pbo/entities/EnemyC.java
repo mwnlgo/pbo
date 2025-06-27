@@ -69,11 +69,11 @@ public class EnemyC extends Enemy {
         hurtAnims.put(Direction.UP, hurtRightAnim);
         this.animations.put(EnemyState.HURT, hurtAnims);
         Map<Direction, Animation<TextureRegion>> deadAnims = new HashMap<>();
-        Animation<TextureRegion> deadAnim = loadAnimationFromSheet("necro/death_Necro_left_animation.png", 9, 1, 0.1f);
+        Animation<TextureRegion> deadAnim = loadAnimationFromSheet("necro/death_Necro_left_animation.png", 10, 1, 0.1f);
         deadAnim.setPlayMode(Animation.PlayMode.NORMAL);
         deadAnims.put(Direction.DOWN, deadAnim);
         deadAnims.put(Direction.LEFT, deadAnim);
-        Animation<TextureRegion> deadRightAnim = loadAnimationFromSheet("necro/death_Necro_right_animation.png", 9, 1, 0.1f);
+        Animation<TextureRegion> deadRightAnim = loadAnimationFromSheet("necro/death_Necro_right_animation.png", 10, 1, 0.1f);
         deadRightAnim.setPlayMode(Animation.PlayMode.NORMAL);
         deadAnims.put(Direction.RIGHT, deadRightAnim);
         deadAnims.put(Direction.UP, deadRightAnim);

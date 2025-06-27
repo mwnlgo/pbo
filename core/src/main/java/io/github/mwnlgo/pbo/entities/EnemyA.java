@@ -83,12 +83,12 @@ public class EnemyA extends Enemy implements IMeleeAttacker {
 
         // Animasi DEAD
         Map<Direction, Animation<TextureRegion>> deadAnims = new HashMap<>();
-        Animation<TextureRegion> deadAnim = loadAnimationFromSheet("skeleton/Dead_Skeleton_left_animation.png", 15, 1, 0.1f);
+        Animation<TextureRegion> deadAnim = loadAnimationFromSheet("skeleton/Dead_Skeleton_left_animation.png", 21, 1, 0.1f);
         deadAnim.setPlayMode(Animation.PlayMode.NORMAL);
         deadAnims.put(Direction.DOWN, deadAnim);
         deadAnims.put(Direction.UP, deadAnim);
         deadAnims.put(Direction.LEFT, deadAnim);
-        Animation<TextureRegion> deadRightAnim = loadAnimationFromSheet("skeleton/Dead_Skeleton_right_animation.png", 15, 1, 0.1f);
+        Animation<TextureRegion> deadRightAnim = loadAnimationFromSheet("skeleton/Dead_Skeleton_right_animation.png", 21, 1, 0.1f);
         deadRightAnim.setPlayMode(Animation.PlayMode.NORMAL);
         deadAnims.put(Direction.RIGHT, deadRightAnim);
         this.animations.put(EnemyState.DEAD, deadAnims);
