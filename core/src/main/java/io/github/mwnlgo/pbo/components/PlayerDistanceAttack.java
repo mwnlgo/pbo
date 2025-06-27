@@ -2,19 +2,18 @@ package io.github.mwnlgo.pbo.components;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.TimeUtils;
 import io.github.mwnlgo.pbo.entities.Player;
 import io.github.mwnlgo.pbo.entities.Projectile;
-import io.github.mwnlgo.pbo.enums.Direction;
 
 /**
- * Komponen serangan jarak jauh yang menembakkan proyektil.
- * Logika serangan ini berbasis cooldown, bukan hitbox sementara.
+ * Komponen serangan jarak jauh yang menembakkan proyektil ke segala arah (omnidirectional).
+ * Logika serangan ini berbasis cooldown.
  */
 public class PlayerDistanceAttack extends PlayerAttackComponent {
     private static final String TAG = "PlayerDistanceAttack";
 
-    // Variabel untuk mengelola cooldown serangan jarak jauh
     private float cooldown;
     private long lastAttackTime;
 
@@ -25,47 +24,37 @@ public class PlayerDistanceAttack extends PlayerAttackComponent {
      * @param attackDuration Durasi serangan (tidak digunakan untuk proyektil, bisa diisi 0).
      */
     public PlayerDistanceAttack(Player player, float damageAmount, float attackDuration) {
-        // (PERUBAHAN) Panggil konstruktor kelas dasar dengan semua parameter yang diperlukan.
         super(player, damageAmount, attackDuration);
-
-        // Atur cooldown spesifik untuk serangan ini
         this.cooldown = 0.5f; // Bisa menyerang setiap 0.5 detik
         this.lastAttackTime = 0L;
     }
 
     @Override
     public void attack() {
-        // Logika cooldown sekarang dikelola di dalam kelas ini.
         if (TimeUtils.millis() - lastAttackTime > cooldown * 1000) {
             Gdx.app.log(TAG, "Distance Attack initiated!");
-
-            // Panggil metode 'attack' dari kelas dasar untuk membersihkan daftar hit
-            // dan menangani status dasar jika diperlukan.
             super.attack();
 
-            Vector2 playerPos = player.getPosition();
-            Direction playerDir = player.getCurrentDirection();
+            // (PERUBAHAN) Hitung vektor arah dari pemain ke mouse
+            Vector3 mouseInWorld = player.getScreen().getCamera().unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
+            Vector2 directionVector = new Vector2(mouseInWorld.x - player.getPosition().x, mouseInWorld.y - player.getPosition().y).nor(); // .nor() untuk normalisasi
 
-            // Buat proyektil baru dengan damage yang sesuai
+            // (PERUBAHAN) Buat proyektil baru dengan Vektor Arah, bukan enum Direction
             Projectile playerProjectile = new Projectile(
-                playerPos.x,
-                playerPos.y,
-                playerDir,
+                player.getPosition().x,
+                player.getPosition().y,
+                directionVector, // Gunakan vektor arah yang baru dihitung
                 player.getScreen(),
-                this.damageAmount // Menggunakan damageAmount dari kelas dasar
+                this.damageAmount
             );
 
-            // Tambahkan proyektil ke dunia game
             player.getScreen().spawnPlayerProjectile(playerProjectile);
-
-            // Perbarui waktu serangan terakhir untuk memulai cooldown
             this.lastAttackTime = TimeUtils.millis();
         }
     }
 
     @Override
     public void update(float delta) {
-        // Metode update dari kelas dasar mengelola timer hitbox, yang tidak kita gunakan di sini.
-        // Jadi, kita bisa membiarkannya kosong agar tidak ada logika yang berjalan.
+        // Metode ini bisa dibiarkan kosong karena serangan proyektil tidak menggunakan hitbox sementara.
     }
 }

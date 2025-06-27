@@ -84,19 +84,15 @@ public class EnemyC extends Enemy {
     protected void updateAI(float delta) {
         // (PERBAIKAN) Logika untuk state non-aktif (HURT/DEAD)
         if (currentState == EnemyState.HURT) {
-            // Cek jika animasi HURT sudah selesai
             Animation<TextureRegion> hurtAnimation = animations.get(EnemyState.HURT).get(currentDirection);
             if (hurtAnimation != null && hurtAnimation.isAnimationFinished(stateTimer)) {
-                // Kembali ke state IDLE setelah animasi selesai
                 currentState = EnemyState.IDLE;
             }
-            return; // Hentikan logika AI lainnya jika sedang hurt
+            return; // <-- Menghentikan AI dan mencegah serangan
         }
 
         if (currentState == EnemyState.DEAD) {
-            // Animasi kematian akan terus diputar.
-            // GameScreen akan memeriksa isDeathAnimationFinished() untuk menghapus musuh.
-            return; // Hentikan semua logika AI jika sudah mati.
+            return;
         }
 
 

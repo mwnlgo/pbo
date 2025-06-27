@@ -2,6 +2,7 @@ package io.github.mwnlgo.pbo.entities;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -14,7 +15,6 @@ import io.github.mwnlgo.pbo.Screens.GameScreen;
 import io.github.mwnlgo.pbo.components.PlayerAttackComponent;
 import io.github.mwnlgo.pbo.components.PlayerDistanceAttack;
 import io.github.mwnlgo.pbo.components.PlayerMeleeAttack;
-// import io.github.mwnlgo.pbo.components.PlayerSpecialAttack; // Jika Anda ingin menambahkannya nanti
 import io.github.mwnlgo.pbo.enums.AttackType;
 import io.github.mwnlgo.pbo.enums.Direction;
 import io.github.mwnlgo.pbo.enums.PlayerState;
@@ -41,6 +41,11 @@ public class Player implements IDamageable {
     private boolean isMoving;
     private boolean isAttacking;
 
+    // Atribut untuk invincibility setelah diserang
+    private boolean isInvincible;
+    private final float invincibilityDuration = 2.0f; // Durasi 1 detik
+    private float invincibilityTimer;
+
     // Sistem Animasi
     private Map<PlayerState, Map<Direction, Animation<TextureRegion>>> animations;
     private PlayerState currentState;
@@ -64,6 +69,10 @@ public class Player implements IDamageable {
         this.isAlive = true;
         this.isMoving = false;
         this.isAttacking = false;
+
+        // Inisialisasi invincibility
+        this.isInvincible = false;
+        this.invincibilityTimer = 0f;
 
         loadAnimations();
         loadAttackComponents();
@@ -119,26 +128,27 @@ public class Player implements IDamageable {
         attackRight.setPlayMode(Animation.PlayMode.NORMAL);
         attackAnims.put(Direction.RIGHT, attackRight);
         animations.put(PlayerState.ATTACKING, attackAnims);
+
+        Map<Direction, Animation<TextureRegion>> hurtAnims = new HashMap<>();
+        Animation<TextureRegion> knockDown = loadAnimationFromSheet("player/knock_ayam.png", 5, 1, 0.1f);
+        knockDown.setPlayMode(Animation.PlayMode.NORMAL);
+        hurtAnims.put(Direction.DOWN, knockDown);
+        Animation<TextureRegion> KnockUp = loadAnimationFromSheet("player/knock_back_ayam.png", 5, 1, 0.1f);
+        KnockUp.setPlayMode(Animation.PlayMode.NORMAL);
+        hurtAnims.put(Direction.UP, KnockUp);
+        Animation<TextureRegion> KnockLeft = loadAnimationFromSheet("player/knock_left_ayam.png", 5, 1, 0.1f);
+        KnockLeft.setPlayMode(Animation.PlayMode.NORMAL);
+        hurtAnims.put(Direction.LEFT, KnockLeft);
+        Animation<TextureRegion> knockRight = loadAnimationFromSheet("player/knock_right_ayam.png", 5, 1, 0.1f);
+        knockRight.setPlayMode(Animation.PlayMode.NORMAL);
+        hurtAnims.put(Direction.RIGHT, knockRight);
+        animations.put(PlayerState.HURT, hurtAnims);
     }
 
-    /**
-     * Memuat komponen-komponen serangan yang berbeda dengan damage dan durasi masing-masing.
-     */
     private void loadAttackComponents() {
         this.attackComponents = new HashMap<>();
-
-        // (PERUBAHAN DI SINI)
-        // Sekarang kita memberikan 3 parameter: player, damage, dan durasi hitbox.
-        // Untuk serangan jarak jauh (distance), durasi tidak terlalu penting karena tidak menggunakan hitbox.
-
-        // Serangan Melee dengan damage 25 dan durasi hitbox 0.2 detik
         attackComponents.put(AttackType.MELEE, new PlayerMeleeAttack(this, 25f, 0.2f));
-
-        // Serangan Jarak Jauh dengan damage 15. Durasi hitbox bisa diisi 0, karena tidak digunakan.
-        attackComponents.put(AttackType.THROW, new PlayerDistanceAttack(this, 15f, 0f));
-
-        // Contoh jika Anda ingin menambahkan serangan spesial
-        // attackComponents.put(AttackType.SPECIAL, new PlayerSpecialAttack(this, 50f, 0.5f));
+        attackComponents.put(AttackType.THROW, new PlayerDistanceAttack(this, 15f, 0.2f));
     }
 
     public void update(float delta) {
@@ -147,13 +157,28 @@ public class Player implements IDamageable {
             return;
         }
 
+        // Update timer invincibility
+        if (isInvincible) {
+            invincibilityTimer -= delta;
+            if (invincibilityTimer <= 0) {
+                isInvincible = false;
+            }
+        }
+
         PlayerState previousState = currentState;
         isMoving = false;
 
         handleInput(delta);
         currentAttack.update(delta);
 
-        if (isAttacking) {
+        // Logika state machine diperbarui untuk menangani HURT
+        if (currentState == PlayerState.HURT) {
+            Animation<TextureRegion> hurtAnim = animations.get(currentState).get(currentDirection);
+            if (hurtAnim != null && hurtAnim.isAnimationFinished(stateTimer)) {
+                // Setelah animasi hurt selesai, kembali ke IDLE
+                currentState = PlayerState.IDLE;
+            }
+        } else if (isAttacking) {
             currentState = PlayerState.ATTACKING;
             Animation<TextureRegion> currentAnim = animations.get(currentState).get(currentDirection);
             if (currentAnim != null && currentAnim.isAnimationFinished(stateTimer)) {
@@ -176,7 +201,8 @@ public class Player implements IDamageable {
     }
 
     private void handleInput(float delta) {
-        if (isAttacking) return;
+        // Kunci input jika pemain sedang diserang (HURT) atau menyerang
+        if (isAttacking || currentState == PlayerState.HURT) return;
 
         Vector2 moveDirection = new Vector2();
         if (Gdx.input.isKeyPressed(Input.Keys.W)) moveDirection.y += 1;
@@ -200,9 +226,8 @@ public class Player implements IDamageable {
             currentDirection = dy > 0 ? Direction.UP : Direction.DOWN;
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) switchAttack(AttackType.MELEE);
-        if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) switchAttack(AttackType.THROW);
-        // if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) switchAttack(AttackType.SPECIAL);
+        if (Gdx.input.isKeyJustPressed(Input.Keys.Q)) switchAttack(AttackType.MELEE);
+        if (Gdx.input.isKeyJustPressed(Input.Keys.E)) switchAttack(AttackType.THROW);
 
         if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
             currentAttack.attack();
@@ -220,11 +245,26 @@ public class Player implements IDamageable {
 
         if (currentAnimation == null) return;
 
-        TextureRegion currentFrame = currentAnimation.getKeyFrame(stateTimer, true);
+        boolean isLooping = (currentState != PlayerState.ATTACKING && currentState != PlayerState.HURT);
+        TextureRegion currentFrame = currentAnimation.getKeyFrame(stateTimer, isLooping);
+
         float frameWidth = currentFrame.getRegionWidth();
         float frameHeight = currentFrame.getRegionHeight();
 
+        // Logika untuk membuat sprite berkedip saat kebal
+        if (isInvincible) {
+            // Berkedip setiap 0.1 detik dengan mengubah alpha
+            if ((int)(invincibilityTimer * 10) % 2 == 0) {
+                batch.setColor(1, 1, 1, 0.5f); // Setengah transparan
+            } else {
+                batch.setColor(1, 1, 1, 1f); // Normal
+            }
+        }
+
         batch.draw(currentFrame, position.x - frameWidth / 2f, position.y - frameHeight / 2f);
+
+        // Kembalikan warna batch ke normal setelah menggambar
+        batch.setColor(Color.WHITE);
     }
 
     public void dispose() {
@@ -244,7 +284,7 @@ public class Player implements IDamageable {
     }
 
     public void switchAttack(AttackType type) {
-        if (isAttacking) return;
+        if (isAttacking || currentState == PlayerState.HURT) return;
         PlayerAttackComponent newAttack = attackComponents.get(type);
         if (newAttack != null) {
             this.currentAttack = newAttack;
@@ -254,13 +294,25 @@ public class Player implements IDamageable {
 
     @Override
     public void takeDamage(float amount) {
-        if (!isAlive) return;
+        // Jangan terima damage jika sedang kebal
+        if (!isAlive || isInvincible) return;
+
         this.currentHealth -= amount;
         Gdx.app.log("Player", "Took " + amount + " damage. Health: " + currentHealth);
+
         if (this.currentHealth <= 0) {
             this.currentHealth = 0;
             this.isAlive = false;
+            this.currentState = PlayerState.DEAD;
             Gdx.app.log("Player", "Player has died!");
+        } else {
+            // Masuk ke state HURT untuk animasi
+            this.currentState = PlayerState.HURT;
+            this.stateTimer = 0;
+
+            // Aktifkan mode kebal
+            this.isInvincible = true;
+            this.invincibilityTimer = this.invincibilityDuration;
         }
     }
 
@@ -275,5 +327,5 @@ public class Player implements IDamageable {
     public Vector2 getPosition() { return position; }
     public GameScreen getScreen() { return screen; }
     public Direction getCurrentDirection() { return currentDirection; }
-    public PlayerAttackComponent getCurrentAttack() { return this.currentAttack; }
+    public PlayerAttackComponent getCurrentAttack() { return this.currentAttack;}
 }

@@ -157,16 +157,14 @@ public class EnemyB extends Enemy implements IMeleeAttacker {
 
     private void updateDirection() {
         float dx = target.getPosition().x - this.position.x;
-        // float dy = target.getPosition().y - this.position.y; // Tidak digunakan untuk arah Kiri/Kanan
+        float dy = target.getPosition().y - this.position.y;
 
-        // Untuk Demon, kita bisa buat arahnya lebih simpel (hanya kiri/kanan)
-        if (dx > 0) {
-            this.currentDirection = Direction.RIGHT;
+        if (Math.abs(dx) > Math.abs(dy)) {
+            this.currentDirection = dx > 0 ? Direction.RIGHT : Direction.LEFT;
         } else {
-            this.currentDirection = Direction.LEFT;
+            this.currentDirection = dy > 0 ? Direction.UP : Direction.DOWN;
         }
-    }
-
+}
     @Override
     public EnemyMeleeAttack getMeleeAttack() {
         return this.meleeAttack;
