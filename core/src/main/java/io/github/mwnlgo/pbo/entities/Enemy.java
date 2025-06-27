@@ -1,6 +1,7 @@
 package io.github.mwnlgo.pbo.entities;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.audio.Sound; // (BARU) Import Sound
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -41,6 +42,9 @@ public abstract class Enemy implements IDamageable {
     protected float stateTimer;
 
     protected Array<Texture> managedTextures;
+
+    // (BARU) Variabel untuk suara kematian. Protected agar bisa diakses subclass.
+    protected Sound deathSound;
 
     public Enemy(float x, float y, Player target, GameScreen screen,
                  float initialHealth, float initialSpeed,
@@ -120,6 +124,11 @@ public abstract class Enemy implements IDamageable {
             texture.dispose();
         }
         managedTextures.clear();
+
+        // (BARU) Pastikan suara kematian juga di-dispose
+        if (deathSound != null) {
+            deathSound.dispose();
+        }
     }
 
     protected abstract void updateAI(float delta);
@@ -148,7 +157,6 @@ public abstract class Enemy implements IDamageable {
 
     @Override
     public void takeDamage(float amount) {
-        // Jangan lakukan apa-apa jika musuh sudah mati atau sudah dalam state HURT
         if (!isAlive || currentState == EnemyState.HURT) {
             return;
         }
@@ -158,41 +166,30 @@ public abstract class Enemy implements IDamageable {
         if (this.currentHealth <= 0) {
             this.currentHealth = 0;
             this.isAlive = false;
+
+            // (BARU) Putar suara kematian sebelum mengubah state
+            if (deathSound != null) {
+                deathSound.play();
+            }
+
             this.currentState = EnemyState.DEAD;
-            this.stateTimer = 0; // Reset timer untuk animasi kematian
+            this.stateTimer = 0;
             Gdx.app.log("Enemy", "Enemy has died!");
         } else {
-            // (INTI PERUBAHAN)
-            // Paksa musuh masuk ke state HURT untuk memainkan animasi "terkena serangan"
             this.currentState = EnemyState.HURT;
-            // Reset stateTimer agar animasi HURT dimulai dari awal
             this.stateTimer = 0f;
             Gdx.app.log("Enemy", "Enemy took damage, entering HURT state.");
         }
     }
 
-    /**
-     * (BARU) Memeriksa apakah musuh sudah mati DAN animasi kematiannya sudah selesai diputar.
-     * Ini digunakan oleh GameScreen untuk memutuskan kapan harus menghapus objek musuh.
-     * @return true jika animasi kematian telah selesai, false sebaliknya.
-     */
     public boolean isDeathAnimationFinished() {
-        // Method ini hanya relevan jika state saat ini adalah DEAD
         if (this.currentState != EnemyState.DEAD) {
             return false;
         }
-
-        // Dapatkan animasi kematian untuk arah saat ini
         Animation<TextureRegion> deadAnimation = animations.get(EnemyState.DEAD).get(currentDirection);
-
-        // Jika karena suatu alasan tidak ada animasi kematian, anggap saja sudah "selesai"
-        // agar objek tidak terjebak di dalam game selamanya.
         if (deadAnimation == null) {
             return true;
         }
-
-        // Gunakan method bawaan dari kelas Animation untuk memeriksa apakah stateTimer
-        // sudah melebihi durasi total animasi.
         return deadAnimation.isAnimationFinished(stateTimer);
     }
 
@@ -209,7 +206,6 @@ public abstract class Enemy implements IDamageable {
     public Direction getCurrentDirection() { return currentDirection; }
     public EnemyState getCurrentState() { return currentState; }
 
-    // (BARU) Getter agar komponen serangan bisa mengakses target dan screen
     public Player getTarget() {
         return target;
     }

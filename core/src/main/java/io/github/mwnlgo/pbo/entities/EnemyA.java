@@ -1,5 +1,6 @@
 package io.github.mwnlgo.pbo.entities;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
@@ -41,6 +42,8 @@ public class EnemyA extends Enemy implements IMeleeAttacker {
 
         this.currentState = EnemyState.IDLE;
         this.currentDirection = Direction.DOWN;
+
+        this.deathSound = Gdx.audio.newSound(Gdx.files.internal("sound/SkeletonDead.wav"));
     }
 
     private void loadAnimations() {
