@@ -67,7 +67,7 @@ public class Player implements IDamageable {
         this.hitboxHeight = 32f * SCALE_FACTOR; // Perbesar tinggi hitbox
         this.hitboxOffsetX = -this.hitboxWidth / 2f; // Hitung ulang offset X
         this.hitboxOffsetY = 0f; // Kita set 0 karena di render() kita gambar dari kaki (y=0)
-        this.speed = 1000f;
+        this.speed = 500f;
         this.isAlive = true;
         this.isMoving = false;
         this.isAttacking = false;

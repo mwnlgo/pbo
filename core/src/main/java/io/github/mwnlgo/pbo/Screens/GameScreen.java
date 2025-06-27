@@ -313,7 +313,8 @@ public class GameScreen implements Screen {
         } else {
             // Map persentase HP (0-100%) ke 5 frame sisanya (index 1-5)
             frameIndex = 6 - (int) Math.ceil(healthPercentage * 6);
-            frameIndex = Math.max(1, Math.min(5, frameIndex)); // Pastikan index antara 1 dan 5
+            frameIndex = Math.max(1, Math.min(5, frameIndex)); // (hanya untuk jaga jaga)
+//          clamping, memastikan frameIndex tidak keluar dari rentang 1-5
         }
 
         TextureRegion currentHealthFrame = healthBarFrames[frameIndex];

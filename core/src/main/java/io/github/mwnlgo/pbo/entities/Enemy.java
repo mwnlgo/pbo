@@ -151,7 +151,7 @@ public abstract class Enemy implements IDamageable {
     public void tryDropItem() {
 
         // Atur persentase drop di sini. 0.1f berarti 10%
-        float dropChance = 1f;
+        float dropChance = 0.3f;
         if (random.nextFloat() <= dropChance) {
             // Jika beruntung, panggil metode di GameScreen untuk memunculkan item
             screen.spawnItemDrop(this.position.x, this.position.y);
