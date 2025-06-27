@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -22,7 +23,14 @@ import io.github.mwnlgo.pbo.components.PlayerMeleeAttack;
 import io.github.mwnlgo.pbo.entities.*;
 import io.github.mwnlgo.pbo.interfaces.IMeleeAttacker;
 
+
 public class GameScreen implements Screen {
+
+    private int currentWave = 0;
+    private float waveTimer = 0f;
+    private float waveInterval = 8f;
+    private boolean waitingNextWave = false;
+    private BitmapFont waveFont;
 
     private Main game;
     private OrthographicCamera camera;
@@ -52,8 +60,8 @@ public class GameScreen implements Screen {
         this.batch = game.getBatch();
         camera = new OrthographicCamera();
         viewport = new FitViewport(1280, 720, camera);
-        this.worldWidth = 3000;
-        this.worldHeight = 3000;
+        this.worldWidth = 1100f;
+        this.worldHeight = 700f;
         allEnemies = new Array<>();
         playerProjectiles = new Array<>();
         enemyProjectiles = new Array<>();
@@ -62,6 +70,10 @@ public class GameScreen implements Screen {
 
     @Override
     public void show() {
+        waveFont = new BitmapFont();
+        waveFont.setColor(Color.WHITE);
+        waveFont.getData().setScale(2f);
+
         shapeRenderer = new ShapeRenderer();
         playerProjectileAnimation = loadAnimationFromSheet("player/projectile_ayam.png", 4, 1, 0.1f);
 
@@ -84,6 +96,22 @@ public class GameScreen implements Screen {
         Gdx.input.setInputProcessor(null);
     }
 
+    private void spawnWave(int waveNumber) {
+        int enemyCount = 3 + waveNumber * 2;
+        for (int i = 0; i < enemyCount; i++) {
+            float x = 100 + (float)Math.random() * (worldWidth - 200);
+            float y = 100 + (float)Math.random() * (worldHeight - 200);
+
+            int type = (int)(Math.random() * 3);
+            switch (type) {
+                case 0: allEnemies.add(new EnemyA(x, y, player, this)); break;
+                case 1: allEnemies.add(new EnemyB(x, y, player, this)); break;
+                case 2: allEnemies.add(new EnemyC(x, y, player, this)); break;
+            }
+        }
+        Gdx.app.log("GameScreen", "Wave " + waveNumber + " started with " + enemyCount + " enemies.");
+    }
+
     private void spawnEnemies() {
         allEnemies.add(new EnemyA(300, 300, player, this));
         allEnemies.add(new EnemyA(500, 200, player, this));
@@ -93,6 +121,20 @@ public class GameScreen implements Screen {
     }
 
     public void update(float delta) {
+        if (!waitingNextWave && allEnemies.size == 0) {
+            waitingNextWave = true;
+            waveTimer = 0f;
+        }
+
+        if (waitingNextWave) {
+            waveTimer += delta;
+            if (waveTimer >= waveInterval) {
+                currentWave++;
+                spawnWave(currentWave);
+                waitingNextWave = false;
+            }
+        }
+
         if (!player.isAlive()) {
             if (backgroundMusic.isPlaying()) {
                 backgroundMusic.stop();
@@ -131,7 +173,15 @@ public class GameScreen implements Screen {
         }
 
         checkCollisions();
-        camera.position.set(player.getPosition().x, player.getPosition().y, 0);
+
+        // Membatasi agar kamera tidak keluar dari world
+        float halfViewportWidth = camera.viewportWidth / 2f;
+        float halfViewportHeight = camera.viewportHeight / 2f;
+
+        float camX = Math.max(halfViewportWidth, Math.min(player.getPosition().x, worldWidth - halfViewportWidth));
+        float camY = Math.max(halfViewportHeight, Math.min(player.getPosition().y, worldHeight - halfViewportHeight));
+
+        camera.position.set(camX, camY, 0);
         camera.update();
     }
 
@@ -215,7 +265,7 @@ public class GameScreen implements Screen {
             frameIndex = 0; // Frame pertama (index 0) untuk HP penuh
         } else {
             // Map persentase HP (0-100%) ke 5 frame sisanya (index 1-5)
-            frameIndex = 6 - (int)Math.ceil(healthPercentage * 6);
+            frameIndex = 6 - (int) Math.ceil(healthPercentage * 6);
             frameIndex = Math.max(1, Math.min(5, frameIndex)); // Pastikan index antara 1 dan 5
         }
 
@@ -223,9 +273,13 @@ public class GameScreen implements Screen {
         float barX = player.getPosition().x - currentHealthFrame.getRegionWidth() / 2f;
         float barY = player.getPosition().y + player.getBounds().height + 10f;
 
-        batch.draw(currentHealthFrame,barX, barY);
-
+        batch.draw(currentHealthFrame, barX, barY);
         batch.end();
+
+        batch.begin();
+        waveFont.draw(batch, "Wave " + currentWave, 50, viewport.getWorldHeight() - 50);
+        batch.end();
+
 
         // --- Langkah 3: Gambar Bentuk Debug (opsional) ---
         drawDebugShapes();
@@ -292,13 +346,27 @@ public class GameScreen implements Screen {
     public void resize(int width, int height) {
         viewport.update(width, height, true);
     }
-    @Override public void pause() { if(backgroundMusic != null && backgroundMusic.isPlaying()) backgroundMusic.pause(); }
-    @Override public void resume() { if(backgroundMusic != null && !backgroundMusic.isPlaying()) backgroundMusic.play(); }
-    @Override public void hide() { if (backgroundMusic != null) { backgroundMusic.stop(); } }
+
+    @Override
+    public void pause() {
+        if (backgroundMusic != null && backgroundMusic.isPlaying()) backgroundMusic.pause();
+    }
+
+    @Override
+    public void resume() {
+        if (backgroundMusic != null && !backgroundMusic.isPlaying()) backgroundMusic.play();
+    }
+
+    @Override
+    public void hide() {
+        if (backgroundMusic != null) {
+            backgroundMusic.stop();
+        }
+    }
 
     @Override
     public void dispose() {
-        if(shapeRenderer != null) shapeRenderer.dispose();
+        if (shapeRenderer != null) shapeRenderer.dispose();
         if (player != null) player.dispose();
 
         for (Enemy e : allEnemies) e.dispose();
@@ -309,7 +377,7 @@ public class GameScreen implements Screen {
 
         if (playerProjectileAnimation != null) {
             Texture sheet = playerProjectileAnimation.getKeyFrames()[0].getTexture();
-            if(sheet != null) sheet.dispose();
+            if (sheet != null) sheet.dispose();
         }
         playerProjectiles.clear();
 
@@ -322,12 +390,30 @@ public class GameScreen implements Screen {
             healthBarSheet.dispose();
         }
 
+        if (waveFont != null) {
+            waveFont.dispose();
+        }
+
         Gdx.app.log("GameScreen", "Disposed GameScreen resources.");
     }
 
-    public OrthographicCamera getCamera() { return camera; }
-    public float getWorldWidth() { return worldWidth; }
-    public float getWorldHeight() { return worldHeight; }
-    public Array<Enemy> getAllEnemies() { return allEnemies; }
-    public Animation<TextureRegion> getPlayerProjectileAnimation() { return playerProjectileAnimation; }
+    public OrthographicCamera getCamera() {
+        return camera;
+    }
+
+    public float getWorldWidth() {
+        return worldWidth;
+    }
+
+    public float getWorldHeight() {
+        return worldHeight;
+    }
+
+    public Array<Enemy> getAllEnemies() {
+        return allEnemies;
+    }
+
+    public Animation<TextureRegion> getPlayerProjectileAnimation() {
+        return playerProjectileAnimation;
+    }
 }
