@@ -92,6 +92,14 @@ public abstract class Enemy implements IDamageable {
         }
 
         this.bounds.setPosition(this.position.x + this.hitboxOffsetX, this.position.y + this.hitboxOffsetY);
+        // Logika untuk membatasi pergerakan musuh di dalam peta
+        float minX = 0;
+        float maxX = screen.getWorldWidth();
+        float minY = 0;
+        float maxY = screen.getWorldHeight();
+
+        position.x = Math.max(minX, Math.min(position.x, maxX));
+        position.y = Math.max(minY, Math.min(position.y, maxY));
     }
 
     public void render(SpriteBatch batch) {

@@ -198,6 +198,16 @@ public class Player implements IDamageable {
 
         this.bounds.x = this.position.x + this.hitboxOffsetX;
         this.bounds.y = this.position.y + this.hitboxOffsetY;
+
+        // Logika untuk membatasi pergerakan di dalam peta
+        float minX = 0; // Tepi kiri peta
+        float maxX = screen.getWorldWidth();  // Tepi kanan peta
+        float minY = 0; // Tepi bawah peta
+        float maxY = screen.getWorldHeight(); // Tepi atas peta
+
+        // Gunakan Math.max dan Math.min untuk "menjepit" posisi
+        position.x = Math.max(minX, Math.min(position.x, maxX));
+        position.y = Math.max(minY, Math.min(position.y, maxY));
     }
 
     private void handleInput(float delta) {
