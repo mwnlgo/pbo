@@ -1,8 +1,8 @@
 package io.github.mwnlgo.pbo;
 
-import com.badlogic.gdx.Game; // Import kelas Game
+import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import io.github.mwnlgo.pbo.Screens.GameScreen; // Import GameScreen Anda
+import io.github.mwnlgo.pbo.Screens.MainMenuScreen;
 
 /**
  * Kelas utama aplikasi game, mewarisi dari com.badlogic.gdx.Game.
@@ -25,7 +25,7 @@ public class Main extends Game {
         // Mengatur layar awal game ke GameScreen.
         // Dengan menggunakan setScreen(), kita memberitahu LibGDX untuk mulai
         // memanggil metode-metode lifecycle (show, render, hide, dispose) dari GameScreen.
-        setScreen(new GameScreen(this));
+        setScreen(new MainMenuScreen(this));
     }
 
     /**

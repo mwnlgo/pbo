@@ -2,6 +2,7 @@ package io.github.mwnlgo.pbo.Screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -17,6 +18,8 @@ public class MainMenuScreen implements Screen {
     private Viewport viewport; // Viewport untuk skala layar
     private BitmapFont font; // Font untuk teks
     // Kita tidak perlu mendeklarasikan SpriteBatch di sini karena akan diambil dari game.getBatch()
+
+    private Music backgroundMusic;
 
     public MainMenuScreen(Main game) { // Ubah konstruktor ke MainGame
         this.game = game;
@@ -39,6 +42,10 @@ public class MainMenuScreen implements Screen {
     @Override
     public void show() {
         // Metode ini dipanggil ketika MainMenuScreen menjadi layar aktif
+        backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("sound/MainMenu.ogg"));
+        backgroundMusic.setLooping(true); // Atur agar musik berulang
+        backgroundMusic.setVolume(0.2f);  // Atur volume (0.0 sampai 1.0)
+        backgroundMusic.play();
     }
 
     @Override
@@ -100,6 +107,11 @@ public class MainMenuScreen implements Screen {
         if (font != null) {
             font.dispose();
         }
+
+        if (backgroundMusic != null) {
+            backgroundMusic.dispose();
+        }
+
         Gdx.app.log("MainMenuScreen", "Disposed MainMenuScreen resources.");
     }
 }
