@@ -16,6 +16,7 @@ import io.github.mwnlgo.pbo.interfaces.IDamageable;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 public abstract class Enemy implements IDamageable {
     protected GameScreen screen;
@@ -42,6 +43,7 @@ public abstract class Enemy implements IDamageable {
     protected EnemyState previousState;
     protected Direction currentDirection;
     protected float stateTimer;
+    private static final Random random = new Random();
 
     protected Array<Texture> managedTextures;
 
@@ -146,6 +148,17 @@ public abstract class Enemy implements IDamageable {
         }
     }
 
+    public void tryDropItem() {
+
+        // Atur persentase drop di sini. 0.1f berarti 10%
+        float dropChance = 1f;
+        if (random.nextFloat() <= dropChance) {
+            // Jika beruntung, panggil metode di GameScreen untuk memunculkan item
+            screen.spawnItemDrop(this.position.x, this.position.y);
+        }
+    }
+
+
     protected abstract void updateAI(float delta);
 
     protected void enterHurtState() {
@@ -186,6 +199,8 @@ public abstract class Enemy implements IDamageable {
             if (deathSound != null) {
                 deathSound.play();
             }
+
+            tryDropItem();
 
             this.currentState = EnemyState.DEAD;
             this.stateTimer = 0;

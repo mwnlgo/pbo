@@ -397,7 +397,19 @@ public class Player implements IDamageable {
             this.isInvincible = true;
             this.invincibilityTimer = this.invincibilityDuration;
         }
+
     }
+
+    public void heal(float amount) {
+        if (!isAlive) return; // Tidak bisa heal jika sudah mati
+
+        this.currentHealth += amount;
+        if (this.currentHealth > this.maxHealth) {
+            this.currentHealth = this.maxHealth; // Batasi agar HP tidak melebihi maksimal
+        }
+        Gdx.app.log("Player", "Healed for " + amount + ". Current Health: " + currentHealth);
+    }
+
 
     @Override
     public float getHealth() { return currentHealth; }
