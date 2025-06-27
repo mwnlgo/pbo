@@ -37,7 +37,7 @@ public class FinishScreen implements Screen {
         // Inisialisasi font menggunakan FreeTypeFontGenerator
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("font/Jersey25-Regular.ttf"));
         FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
-        parameter.size = 50; // Ukuran font yang diinginkan
+        parameter.size = 72; // Ukuran font yang diinginkan
         text = generator.generateFont(parameter); // Buat font untuk wave
         generator.dispose(); // Buang generator setelah font dibuat
 
@@ -54,7 +54,7 @@ public class FinishScreen implements Screen {
         game.getBatch().setProjectionMatrix(camera.combined);
         game.getBatch().begin();
         // Implementasi rendering layar
-        text.draw(game.getBatch(), "Game Over at Wave " + wave + "!\nYour score: " + score, viewport.getWorldWidth() / 2f - 200, viewport.getWorldHeight() / 2f);
+        text.draw(game.getBatch(), "Game Over at Wave " + wave + "!\nYour score: " + score, viewport.getWorldWidth() / 2f - 325, viewport.getWorldHeight() / 2f + 50);
         game.getBatch().end();
     }
 

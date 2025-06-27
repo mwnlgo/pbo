@@ -36,7 +36,7 @@ public class MainMenuScreen implements Screen {
         // Inisialisasi font menggunakan FreeTypeFontGenerator
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("font/Jersey25-Regular.ttf"));
         FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
-        parameter.size = 50; // Ukuran font yang diinginkan
+        parameter.size = 72; // Ukuran font yang diinginkan
         font = generator.generateFont(parameter); // Buat font dengan parameter yang telah ditentukan
         generator.dispose(); // Buang generator setelah font dibuat
     }
@@ -53,7 +53,7 @@ public class MainMenuScreen implements Screen {
     @Override
     public void render(float delta) {
         // Hapus layar dengan warna merah (atau warna lain yang Anda inginkan)
-        ScreenUtils.clear(Color.RED);
+        ScreenUtils.clear(Color.NAVY);
 
         // Terapkan viewport agar drawing disesuaikan dengan skala layar
         // true: center the camera (biasanya true untuk menu)
@@ -67,8 +67,7 @@ public class MainMenuScreen implements Screen {
         // Sesuaikan posisi (x, y) dan ukuran viewport jika teks tidak terlihat atau di tempat yang salah.
         // Misalnya, jika viewport 800x480, (1, 1.5f) mungkin terlalu kecil/di pojok.
         // Gunakan posisi relatif atau hitungan dari viewport.getWorldWidth()/2 dan viewport.getWorldHeight()/2
-        font.draw(game.getBatch(), "Welcome to The Game!!! ", viewport.getWorldWidth() / 2 - 150, viewport.getWorldHeight() / 2 + 50);
-        font.draw(game.getBatch(), "Tap anywhere to begin!", viewport.getWorldWidth() / 2 - 120, viewport.getWorldHeight() / 2 - 50);
+        font.draw(game.getBatch(), "Welcome to The Game!!!\nTap anywhere to begin!", viewport.getWorldWidth() / 2 - 325, viewport.getWorldHeight() / 2 + 50);
         game.getBatch().end();
 
         // Cek jika layar disentuh/diklik

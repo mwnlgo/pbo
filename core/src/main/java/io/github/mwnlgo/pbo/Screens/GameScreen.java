@@ -150,7 +150,10 @@ public class GameScreen implements Screen {
             if (backgroundMusic.isPlaying()) {
                 backgroundMusic.stop();
                 loseMusic.play();
+                // Game over, tampilkan layar FinishScreen
                 game.setScreen(new FinishScreen(game, score, currentWave));
+                // Logging ketika pemain mati
+                Gdx.app.log("GameScreen", "Transitioning to FinishScreen. Game Over at Wave " + currentWave + " with score of " + score + ".");
             }
             return;
         }
