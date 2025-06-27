@@ -253,7 +253,7 @@ public class Player implements IDamageable {
         float minX = 20; // Tepi kiri peta
         float maxX = screen.getWorldWidth() - 20;  // Tepi kanan peta
         float minY = 0; // Tepi bawah peta
-        float maxY = screen.getWorldHeight() - 50; // Tepi atas peta
+        float maxY = screen.getWorldHeight() - 400; // Tepi atas peta
 
         // Gunakan Math.max dan Math.min untuk "menjepit" posisi
         position.x = Math.max(minX, Math.min(position.x, maxX));
