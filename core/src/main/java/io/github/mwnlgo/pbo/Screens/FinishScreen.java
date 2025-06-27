@@ -13,6 +13,7 @@ import com.badlogic.gdx.Input; // Tambahkan import ini
 
 public class FinishScreen implements Screen {
 
+
     private final Main game;
     private final int score, wave;
     private BitmapFont text;
@@ -20,6 +21,8 @@ public class FinishScreen implements Screen {
     private BitmapFont menuText;
     private OrthographicCamera camera;
     private FitViewport viewport;
+    private BitmapFont highscoreText;
+    private int highscore;
 
     public FinishScreen(Main game, int score, int wave) {
         this.game = game;
@@ -44,6 +47,9 @@ public class FinishScreen implements Screen {
         parameter.size = 72; // Ukuran font yang diinginkan untuk teks utama
         text = generator.generateFont(parameter); // Buat font untuk wave
 
+        parameter.size = 80;
+        highscoreText = generator.generateFont(parameter);
+
         parameter.size = 48; // Ukuran font yang lebih kecil untuk teks replay
         replayText = generator.generateFont(parameter); // Buat font untuk teks replay
 
@@ -51,6 +57,14 @@ public class FinishScreen implements Screen {
         menuText = generator.generateFont(parameter); // Buat font untuk teks Menu
 
         generator.dispose(); // Buang generator setelah font dibuat
+
+        highscore = game.getPrefs().getInteger("highscore", 0);
+
+        if (score > highscore) {
+            highscore = score;
+            game.getPrefs().putInteger("highscore", highscore);
+            game.getPrefs().flush(); // Penting: simpan perubahan ke disk
+        }
 
         // Update kamera untuk memastikan posisi yang benar
         camera.position.set(viewport.getWorldWidth() / 2, viewport.getWorldHeight() / 2, 0);
@@ -68,8 +82,9 @@ public class FinishScreen implements Screen {
         // Teks utama "Game Over"
         text.draw(game.getBatch(), "Game Over at Wave " + wave + "!\nYour score: " + score, viewport.getWorldWidth() / 2f - 325, viewport.getWorldHeight() / 2f + 50);
 
-        // Teks "Enter SPACE for replay"
-        // Sesuaikan posisi Y agar berada di bawah teks utama
+        highscoreText.draw(game.getBatch(), "Highscore: " + highscore, viewport.getWorldWidth() / 2f - 200, viewport.getWorldHeight() / 2f + 200);
+
+
         replayText.draw(game.getBatch(), "Enter SPACE for play again", viewport.getWorldWidth() / 2f - 325, viewport.getWorldHeight() / 2f - 100);
 
         menuText.draw(game.getBatch(), "Enter (ESC) to Back", viewport.getWorldWidth() / 2f - 325, viewport.getWorldHeight() / 2f - 150);

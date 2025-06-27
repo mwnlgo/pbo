@@ -1,6 +1,8 @@
 package io.github.mwnlgo.pbo;
 
 import com.badlogic.gdx.Game;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import io.github.mwnlgo.pbo.Screens.MainMenuScreen;
 
@@ -11,6 +13,7 @@ import io.github.mwnlgo.pbo.Screens.MainMenuScreen;
 public class Main extends Game {
 
     private SpriteBatch batch; // SpriteBatch adalah objek yang digunakan untuk menggambar tekstur/sprite
+    private Preferences prefs;
 
     /**
      * Metode ini dipanggil saat aplikasi pertama kali dibuat.
@@ -21,6 +24,7 @@ public class Main extends Game {
         // Inisialisasi SpriteBatch. Sebaiknya hanya ada satu instance SpriteBatch
         // dan dilewatkan ke objek-objek yang memerlukannya untuk efisiensi.
         batch = new SpriteBatch();
+        prefs = Gdx.app.getPreferences("MyGamePreferences");
 
         // Mengatur layar awal game ke GameScreen.
         // Dengan menggunakan setScreen(), kita memberitahu LibGDX untuk mulai
@@ -47,6 +51,20 @@ public class Main extends Game {
      * Selain itu, metode dispose() dari Screen yang aktif juga akan dipanggil secara otomatis
      * oleh super.dispose().
      */
+
+    /**
+     * Metode getter untuk mendapatkan instance SpriteBatch.
+     * Ini memungkinkan objek lain (seperti Player, Enemy, Projectile)
+     * untuk menggunakan SpriteBatch yang sama untuk menggambar.
+     * @return Instance SpriteBatch yang digunakan oleh game.
+     */
+    public SpriteBatch getBatch() {
+        return batch;
+    }
+
+    public Preferences getPrefs() {
+        return prefs;
+    }
     @Override
     public void dispose () {
         // Buang SpriteBatch saat aplikasi berakhir
@@ -58,13 +76,4 @@ public class Main extends Game {
         super.dispose();
     }
 
-    /**
-     * Metode getter untuk mendapatkan instance SpriteBatch.
-     * Ini memungkinkan objek lain (seperti Player, Enemy, Projectile)
-     * untuk menggunakan SpriteBatch yang sama untuk menggambar.
-     * @return Instance SpriteBatch yang digunakan oleh game.
-     */
-    public SpriteBatch getBatch() {
-        return batch;
-    }
 }
