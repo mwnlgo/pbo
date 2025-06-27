@@ -1,5 +1,7 @@
 package io.github.mwnlgo.pbo.components;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.TimeUtils;
 import io.github.mwnlgo.pbo.entities.Enemy;
@@ -18,12 +20,18 @@ public class EnemyProjectileAttack {
     private float cooldown;
     private long lastAttackTime;
 
+    private Sound castSound; // (BARU) Variabel untuk suara sihir
+
+
     public EnemyProjectileAttack(Enemy owner, float damageAmount, float cooldown) {
         this.owner = owner;
         this.target = owner.getTarget(); // Dapatkan target dari pemilik (Enemy)
         this.damageAmount = damageAmount;
         this.cooldown = cooldown;
         this.lastAttackTime = 0;
+
+        this.castSound = Gdx.audio.newSound(Gdx.files.internal("sound/DemonAttack.wav"));
+
     }
 
     /**
@@ -39,6 +47,10 @@ public class EnemyProjectileAttack {
      */
     public void attack() {
         if (!isReady()) return;
+
+        if (castSound != null) {
+            castSound.play();
+        }
 
         // Tentukan posisi spawn proyektil (dari posisi musuh)
         Vector2 spawnPos = new Vector2(owner.getPosition());
@@ -65,4 +77,10 @@ public class EnemyProjectileAttack {
 
     // Metode update tidak melakukan apa-apa karena serangan ini instan (tidak ada hitbox timer)
     public void update(float delta) { }
+
+    public void dispose() {
+        if (castSound != null) {
+            castSound.dispose();
+        }
+    }
 }

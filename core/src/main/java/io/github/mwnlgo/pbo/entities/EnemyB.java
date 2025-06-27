@@ -21,6 +21,8 @@ public class EnemyB extends Enemy implements IMeleeAttacker {
     // Komponen yang akan mengelola logika serangan melee
     private EnemyMeleeAttack meleeAttack;
 
+    private boolean hasAttackedThisPhase = false;
+
     public EnemyB(float x, float y, Player target, GameScreen screen) {
         // Panggil konstruktor kelas dasar dengan nilai spesifik untuk EnemyB
         super(x, y, target, screen,
@@ -32,7 +34,7 @@ public class EnemyB extends Enemy implements IMeleeAttacker {
             -80f);  // hitboxOffsetY
 
         // Inisialisasi komponen serangan dengan damage 15 dan durasi hitbox 0.5 detik
-        this.meleeAttack = new EnemyMeleeAttack(this, 15f, 1f);
+        this.meleeAttack = new EnemyMeleeAttack(this, 15f, 1f, "sound/DemonAttack.wav");
 
         loadAnimations();
 
@@ -132,11 +134,20 @@ public class EnemyB extends Enemy implements IMeleeAttacker {
                 break;
 
             case ATTACKING:
-                // Perintahkan komponen untuk menyerang (mengaktifkan hitbox)
-                meleeAttack.attack();
-                // Setelah animasi serangan selesai, kembali ke state lain
-                if (animations.get(EnemyState.ATTACKING).get(currentDirection).isAnimationFinished(stateTimer)) {
-                    currentState = EnemyState.CHASING;
+                if (!hasAttackedThisPhase) {
+                    meleeAttack.attack(); // ✅ hanya sekali
+                    hasAttackedThisPhase = true;
+                }
+
+                Animation<TextureRegion> attackAnim = animations.get(EnemyState.ATTACKING).get(currentDirection);
+                if (attackAnim != null && attackAnim.isAnimationFinished(stateTimer)) {
+                    hasAttackedThisPhase = false; // reset untuk attack berikutnya
+
+                    if (isPlayerInRange(detectionRange)) {
+                        currentState = EnemyState.CHASING;
+                    } else {
+                        currentState = EnemyState.IDLE;
+                    }
                 }
                 break;
         }
@@ -168,5 +179,12 @@ public class EnemyB extends Enemy implements IMeleeAttacker {
     @Override
     public EnemyMeleeAttack getMeleeAttack() {
         return this.meleeAttack;
+    }
+    @Override
+    public void dispose() {
+        super.dispose(); // Panggil dispose dari kelas dasar untuk membersihkan deathSound
+        if (meleeAttack != null) {
+            meleeAttack.dispose();
+        }
     }
 }

@@ -1,6 +1,7 @@
 package io.github.mwnlgo.pbo.components;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.math.Rectangle;
 import io.github.mwnlgo.pbo.entities.Player;
 import io.github.mwnlgo.pbo.enums.Direction;
@@ -17,6 +18,7 @@ public class PlayerMeleeAttack extends PlayerAttackComponent {
     private final float MELEE_ATTACK_WIDTH = 100f; // Lebar ayunan pedang
     private final float MELEE_ATTACK_HEIGHT = 100f; // Tinggi ayunan pedang
 
+    private Sound slashSound;
     /**
      * Konstruktor untuk serangan melee.
      * @param player Pemain yang memiliki serangan.
@@ -26,6 +28,7 @@ public class PlayerMeleeAttack extends PlayerAttackComponent {
     public PlayerMeleeAttack(Player player, float damageAmount, float attackDuration) {
         // (PERUBAHAN) Panggil konstruktor kelas dasar dengan semua parameter yang diperlukan.
         super(player, damageAmount, attackDuration);
+        this.slashSound = Gdx.audio.newSound(Gdx.files.internal("sound/PlayerAttack.wav"));
     }
 
     @Override
@@ -34,6 +37,10 @@ public class PlayerMeleeAttack extends PlayerAttackComponent {
         // dan mengaktifkan status serangan.
         super.attack();
         if(!isActive) return; // Jika super.attack() mencegah serangan, hentikan.
+
+        if (slashSound != null) {
+            slashSound.play(0.3f); // Angka 0.8f adalah volume (opsional)
+        }
 
         Gdx.app.log(TAG, "Melee attack performed towards " + player.getCurrentDirection());
 

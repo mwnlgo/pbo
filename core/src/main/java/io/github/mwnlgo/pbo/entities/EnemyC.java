@@ -158,4 +158,12 @@ public class EnemyC extends Enemy {
             this.currentDirection = Direction.RIGHT;
         }
     }
+
+    @Override
+    public void dispose() {
+        super.dispose(); // Panggil dispose dari kelas dasar untuk membersihkan deathSound
+        if (projectileAttack != null) {
+            projectileAttack.dispose();
+        }
+    }
 }

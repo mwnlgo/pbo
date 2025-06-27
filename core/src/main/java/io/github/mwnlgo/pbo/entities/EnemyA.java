@@ -21,6 +21,9 @@ public class EnemyA extends Enemy implements IMeleeAttacker {
     // Komponen yang akan mengelola logika serangan melee
     private EnemyMeleeAttack meleeAttack;
 
+    private boolean hasAttackedThisPhase = false;
+
+
     public EnemyA(float x, float y, Player target, GameScreen screen) {
         // Panggil konstruktor kelas dasar dengan nilai spesifik untuk EnemyA
         super(x, y, target, screen,
@@ -32,7 +35,7 @@ public class EnemyA extends Enemy implements IMeleeAttacker {
             -24f);  // hitboxOffsetY
 
         // Inisialisasi komponen serangan dengan damage dan durasi hitbox
-        this.meleeAttack = new EnemyMeleeAttack(this, 10f, 0.4f);
+        this.meleeAttack = new EnemyMeleeAttack(this, 10f, 0.4f, "sound/DemonAttack.wav");
 
         loadAnimations(); // Muat animasi spesifik untuk EnemyA
 
@@ -121,9 +124,15 @@ public class EnemyA extends Enemy implements IMeleeAttacker {
                 break;
 
             case ATTACKING:
-                meleeAttack.attack();
+                if (!hasAttackedThisPhase) {
+                    meleeAttack.attack();
+                    hasAttackedThisPhase = true;
+                }
+
                 Animation<TextureRegion> attackAnim = animations.get(EnemyState.ATTACKING).get(currentDirection);
                 if (attackAnim != null && attackAnim.isAnimationFinished(stateTimer)) {
+                    hasAttackedThisPhase = false; // reset untuk attack berikutnya
+
                     if (isPlayerInRange(detectionRange)) {
                         currentState = EnemyState.CHASING;
                     } else {
@@ -157,10 +166,19 @@ public class EnemyA extends Enemy implements IMeleeAttacker {
     /**
      * Implementasi metode dari interface IMeleeAttacker.
      * Ini penting agar GameScreen bisa mendapatkan komponen serangan musuh ini.
+     *
      * @return Komponen serangan melee musuh.
      */
     @Override
     public EnemyMeleeAttack getMeleeAttack() {
         return this.meleeAttack;
+    }
+
+    @Override
+    public void dispose() {
+        super.dispose(); // Panggil dispose dari kelas dasar untuk membersihkan deathSound
+        if (meleeAttack != null) {
+            meleeAttack.dispose();
+        }
     }
 }
