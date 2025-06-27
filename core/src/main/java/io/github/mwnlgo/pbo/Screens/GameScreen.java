@@ -2,6 +2,7 @@ package io.github.mwnlgo.pbo.Screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -40,6 +41,9 @@ public class GameScreen implements Screen {
     private ShapeRenderer shapeRenderer;
     private Array<EnemyMeleeAttack> hitByEnemyAttacks;
 
+    // (BARU) Variabel untuk musik latar
+    private Music backgroundMusic;
+
     public GameScreen(Main game) {
         this.game = game;
         this.batch = game.getBatch();
@@ -66,6 +70,13 @@ public class GameScreen implements Screen {
         allEnemies.add(new EnemyC(1000, 100, player, this));
         allEnemies.add(new EnemyC(800, 600, player, this));
 
+        // (BARU) Muat dan putar musik
+        // PENTING: Ganti "music/your_bgm.mp3" dengan path file musik Anda yang sebenarnya
+        backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("sound/GameScreen.ogg"));
+        backgroundMusic.setLooping(true); // Atur agar musik berulang
+        backgroundMusic.setVolume(0.2f);  // Atur volume (0.0 sampai 1.0)
+        backgroundMusic.play();
+
         Gdx.input.setInputProcessor(null);
     }
 
@@ -77,7 +88,22 @@ public class GameScreen implements Screen {
         for (int i = allEnemies.size - 1; i >= 0; i--) {
             Enemy enemy = allEnemies.get(i);
             enemy.update(delta);
-            if (!enemy.isAlive() && enemy.isDeathAnimationFinished()) {
+
+            // Logika untuk menghapus musuh setelah animasi kematiannya selesai
+            boolean canRemove = false;
+            if (!enemy.isAlive()) {
+                // Periksa setiap tipe musuh yang memiliki animasi kematian
+                if (enemy instanceof EnemyA && ((EnemyA) enemy).isDeathAnimationFinished()) {
+                    canRemove = true;
+                } else if (enemy instanceof EnemyB) { // Asumsi EnemyB juga punya metode ini
+                    // canRemove = ((EnemyB) enemy).isDeathAnimationFinished();
+                    // Anda perlu menambahkan metode isDeathAnimationFinished() ke EnemyB
+                } else if (enemy instanceof EnemyC && ((EnemyC) enemy).isDeathAnimationFinished()) {
+                    canRemove = true;
+                }
+            }
+
+            if (canRemove) {
                 enemy.dispose();
                 allEnemies.removeIndex(i);
             }
@@ -110,11 +136,6 @@ public class GameScreen implements Screen {
         playerProjectiles.add(projectile);
     }
 
-    /**
-     * (BARU) Method untuk menambahkan proyektil musuh ke dalam game.
-     * Dipanggil oleh komponen serangan seperti EnemyProjectileAttack.
-     * @param projectile Objek proyektil musuh yang akan ditambahkan.
-     */
     public void addEnemyProjectile(EnemyProjectile projectile) {
         if (projectile != null) {
             this.enemyProjectiles.add(projectile);
@@ -240,9 +261,19 @@ public class GameScreen implements Screen {
         viewport.update(width, height, true);
     }
 
-    @Override public void pause() {}
-    @Override public void resume() {}
-    @Override public void hide() {}
+    @Override public void pause() {
+        if(backgroundMusic != null && backgroundMusic.isPlaying()) backgroundMusic.pause();
+    }
+
+    @Override public void resume() {
+        if(backgroundMusic != null && !backgroundMusic.isPlaying()) backgroundMusic.play();
+    }
+
+    @Override public void hide() {
+        if (backgroundMusic != null) {
+            backgroundMusic.stop();
+        }
+    }
 
     @Override
     public void dispose() {
@@ -257,9 +288,14 @@ public class GameScreen implements Screen {
 
         if (playerProjectileAnimation != null) {
             Texture sheet = playerProjectileAnimation.getKeyFrames()[0].getTexture();
-            sheet.dispose();
+            if(sheet != null) sheet.dispose();
         }
         playerProjectiles.clear();
+
+        // (BARU) Buang musik untuk mencegah memory leak
+        if (backgroundMusic != null) {
+            backgroundMusic.dispose();
+        }
 
         Gdx.app.log("GameScreen", "Disposed GameScreen resources.");
     }
