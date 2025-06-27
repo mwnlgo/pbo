@@ -150,6 +150,7 @@ public class GameScreen implements Screen {
             if (backgroundMusic.isPlaying()) {
                 backgroundMusic.stop();
                 loseMusic.play();
+                game.setScreen(new FinishScreen(game, score, currentWave));
             }
             return;
         }
