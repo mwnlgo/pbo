@@ -4,7 +4,7 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import io.github.mwnlgo.pbo.Screens.GameScreen;
-import io.github.mwnlgo.pbo.components.EnemyProjectileAttack; // (BARU) Import komponen baru
+import io.github.mwnlgo.pbo.components.EnemyProjectileAttack;
 import io.github.mwnlgo.pbo.enums.Direction;
 import io.github.mwnlgo.pbo.enums.EnemyState;
 
@@ -17,11 +17,9 @@ public class EnemyC extends Enemy {
     private final float preferredAttackDistance = 250f;
     private final float stopMovingDistance = 200f;
 
-    // (BARU) Komponen serangan proyektil
     private EnemyProjectileAttack projectileAttack;
 
     public EnemyC(float x, float y, Player target, GameScreen screen) {
-        // Panggil konstruktor kelas dasar dengan nilai spesifik untuk Necromancer
         super(x, y, target, screen,
             60f,  // maxHealth
             90f,  // speed
@@ -30,19 +28,14 @@ public class EnemyC extends Enemy {
             -16f, // hitboxOffsetX
             -24f); // hitboxOffsetY
 
-        // (BARU) Inisialisasi komponen serangan proyektil
-        // dengan damage 15 dan cooldown 2 detik.
         this.projectileAttack = new EnemyProjectileAttack(this, 15f, 2.0f);
-
-        loadAnimations(); // Muat animasi spesifik EnemyC
-
+        loadAnimations();
         this.currentState = EnemyState.IDLE;
         this.currentDirection = Direction.DOWN;
     }
 
-    // Metode loadAnimations() Anda sudah baik dan tidak perlu diubah.
     private void loadAnimations() {
-        // ... (kode loadAnimations Anda yang sudah ada) ...
+        // (Kode loadAnimations Anda sudah baik, tidak perlu diubah)
         Map<Direction, Animation<TextureRegion>> idleAnims = new HashMap<>();
         idleAnims.put(Direction.DOWN, loadAnimationFromSheet("necro/idle_Necro_Left.png", 8, 1, 0.25f));
         idleAnims.put(Direction.UP, loadAnimationFromSheet("necro/idle_Necro_Right.png", 8, 1, 0.25f));
@@ -59,41 +52,70 @@ public class EnemyC extends Enemy {
         Animation<TextureRegion> castLeft = loadAnimationFromSheet("necro/attacking_Necro_left_animation.png", 13, 1, 0.12f);
         castLeft.setPlayMode(Animation.PlayMode.NORMAL);
         attackAnims.put(Direction.DOWN, castLeft);
-        attackAnims.put(Direction.UP, castLeft); // Maybe use right animation?
         attackAnims.put(Direction.LEFT, castLeft);
         Animation<TextureRegion> castRight = loadAnimationFromSheet("necro/attacking_Necro_right_animation.png", 13, 1, 0.12f);
         castRight.setPlayMode(Animation.PlayMode.NORMAL);
         attackAnims.put(Direction.RIGHT, castRight);
+        attackAnims.put(Direction.UP, castRight);
         this.animations.put(EnemyState.ATTACKING, attackAnims);
+        Map<Direction, Animation<TextureRegion>> hurtAnims = new HashMap<>();
+        Animation<TextureRegion> hurtAnim = loadAnimationFromSheet("necro/knockback_Necro_Left.png", 5, 1, 0.1f);
+        hurtAnim.setPlayMode(Animation.PlayMode.NORMAL);
+        hurtAnims.put(Direction.DOWN, hurtAnim);
+        hurtAnims.put(Direction.LEFT, hurtAnim);
+        Animation<TextureRegion> hurtRightAnim = loadAnimationFromSheet("necro/knockback_Necro_Right.png", 5, 1, 0.1f);
+        hurtRightAnim.setPlayMode(Animation.PlayMode.NORMAL);
+        hurtAnims.put(Direction.RIGHT, hurtRightAnim);
+        hurtAnims.put(Direction.UP, hurtRightAnim);
+        this.animations.put(EnemyState.HURT, hurtAnims);
+        Map<Direction, Animation<TextureRegion>> deadAnims = new HashMap<>();
+        Animation<TextureRegion> deadAnim = loadAnimationFromSheet("necro/death_Necro_left_animation.png", 9, 1, 0.1f);
+        deadAnim.setPlayMode(Animation.PlayMode.NORMAL);
+        deadAnims.put(Direction.DOWN, deadAnim);
+        deadAnims.put(Direction.LEFT, deadAnim);
+        Animation<TextureRegion> deadRightAnim = loadAnimationFromSheet("necro/death_Necro_right_animation.png", 9, 1, 0.1f);
+        deadRightAnim.setPlayMode(Animation.PlayMode.NORMAL);
+        deadAnims.put(Direction.RIGHT, deadRightAnim);
+        deadAnims.put(Direction.UP, deadRightAnim);
+        this.animations.put(EnemyState.DEAD, deadAnims);
     }
 
     @Override
     protected void updateAI(float delta) {
-        // Abaikan AI jika sedang dalam state non-aktif (HURT atau DEAD)
-        if (currentState == EnemyState.HURT || currentState == EnemyState.DEAD) {
-            // ... (logika HURT/DEAD Anda sudah baik) ...
-            return;
+        // (PERBAIKAN) Logika untuk state non-aktif (HURT/DEAD)
+        if (currentState == EnemyState.HURT) {
+            // Cek jika animasi HURT sudah selesai
+            Animation<TextureRegion> hurtAnimation = animations.get(EnemyState.HURT).get(currentDirection);
+            if (hurtAnimation != null && hurtAnimation.isAnimationFinished(stateTimer)) {
+                // Kembali ke state IDLE setelah animasi selesai
+                currentState = EnemyState.IDLE;
+            }
+            return; // Hentikan logika AI lainnya jika sedang hurt
         }
 
+        if (currentState == EnemyState.DEAD) {
+            // Animasi kematian akan terus diputar.
+            // GameScreen akan memeriksa isDeathAnimationFinished() untuk menghapus musuh.
+            return; // Hentikan semua logika AI jika sudah mati.
+        }
+
+
+        // Logika AI normal untuk state lainnya
         float distanceToPlayer = target.getPosition().dst(this.position);
 
-        // (PERUBAHAN) State machine sekarang menggunakan komponen serangan
         switch (currentState) {
             case IDLE:
             case CHASING:
-                updateMovement(distanceToPlayer, delta); // Pindahkan logika gerak ke metode terpisah
-                // Cek apakah bisa menyerang
+                updateMovement(distanceToPlayer, delta);
                 if (distanceToPlayer <= preferredAttackDistance + 50 && distanceToPlayer >= stopMovingDistance - 50 && projectileAttack.isReady()) {
                     currentState = EnemyState.ATTACKING;
                 }
                 break;
 
             case ATTACKING:
-                // Perintahkan komponen untuk meluncurkan proyektil (jika cooldown selesai)
                 projectileAttack.attack();
-
-                // Setelah animasi casting selesai, kembali ke state lain
-                if (animations.get(EnemyState.ATTACKING).get(currentDirection).isAnimationFinished(stateTimer)) {
+                Animation<TextureRegion> attackAnim = animations.get(EnemyState.ATTACKING).get(currentDirection);
+                if (attackAnim != null && attackAnim.isAnimationFinished(stateTimer)) {
                     currentState = EnemyState.CHASING;
                 }
                 break;
@@ -101,15 +123,22 @@ public class EnemyC extends Enemy {
     }
 
     /**
-     * Mengatur pergerakan Necromancer (mengejar atau mundur).
+     * (BARU) Metode untuk memeriksa apakah animasi kematian sudah selesai.
+     * @return true jika animasi DEAD selesai, false sebaliknya.
      */
+    public boolean isDeathAnimationFinished() {
+        if (currentState != EnemyState.DEAD) return false;
+        Animation<TextureRegion> deadAnimation = animations.get(EnemyState.DEAD).get(currentDirection);
+        if (deadAnimation == null) return true; // Jika tidak ada animasi, anggap selesai
+        return deadAnimation.isAnimationFinished(stateTimer);
+    }
+
     private void updateMovement(float distanceToPlayer, float delta) {
         if (distanceToPlayer < stopMovingDistance) {
-            retreat(delta); // Terlalu dekat, mundur
+            retreat(delta);
         } else if (distanceToPlayer > preferredAttackDistance) {
-            chase(delta); // Terlalu jauh, maju
+            chase(delta);
         } else {
-            // Jarak ideal, berhenti bergerak dan hadap pemain
             updateDirectionToTarget();
         }
     }

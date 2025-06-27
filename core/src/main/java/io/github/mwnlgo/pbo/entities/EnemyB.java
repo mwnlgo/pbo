@@ -12,7 +12,7 @@ import io.github.mwnlgo.pbo.interfaces.IMeleeAttacker;
 import java.util.HashMap;
 import java.util.Map;
 
-// (BARU) Implementasikan interface IMeleeAttacker
+// Implementasikan interface IMeleeAttacker
 public class EnemyB extends Enemy implements IMeleeAttacker {
 
     private final float detectionRange = 400f;
@@ -26,10 +26,10 @@ public class EnemyB extends Enemy implements IMeleeAttacker {
         super(x, y, target, screen,
             100f,   // maxHealth
             100f,   // speed
-            40f,    // hitboxWidth
-            60f,    // hitboxHeight
-            -20f,   // hitboxOffsetX
-            -30f);  // hitboxOffsetY
+            80f,    // hitboxWidth
+            80f,    // hitboxHeight
+            -40f,   // hitboxOffsetX
+            -80f);  // hitboxOffsetY
 
         // Inisialisasi komponen serangan dengan damage 15 dan durasi hitbox 0.5 detik
         this.meleeAttack = new EnemyMeleeAttack(this, 15f, 0.5f);
@@ -40,9 +40,7 @@ public class EnemyB extends Enemy implements IMeleeAttacker {
         this.currentDirection = Direction.DOWN;
     }
 
-    // Metode loadAnimations() Anda sudah baik dan tidak perlu diubah.
     private void loadAnimations() {
-        // ... (kode loadAnimations Anda yang sudah ada) ...
         // Animasi IDLE
         Map<Direction, Animation<TextureRegion>> idleAnims = new HashMap<>();
         idleAnims.put(Direction.DOWN, loadAnimationFromSheet("demon/idle_demon_right.png", 6, 1, 0.25f));
@@ -64,25 +62,52 @@ public class EnemyB extends Enemy implements IMeleeAttacker {
         Animation<TextureRegion> attackLeft = loadAnimationFromSheet("demon/attack_demon_left.png", 15, 1, 0.1f);
         attackLeft.setPlayMode(Animation.PlayMode.NORMAL);
         attackAnims.put(Direction.DOWN, attackLeft); // Asumsi animasi sama
-        attackAnims.put(Direction.UP, attackLeft);
         attackAnims.put(Direction.LEFT, attackLeft);
 
         Animation<TextureRegion> attackRight = loadAnimationFromSheet("demon/attack_demon_right.png", 15, 1, 0.1f);
         attackRight.setPlayMode(Animation.PlayMode.NORMAL);
         attackAnims.put(Direction.RIGHT, attackRight);
-
+        attackAnims.put(Direction.UP, attackLeft);
         this.animations.put(EnemyState.ATTACKING, attackAnims);
+
+        // Animasi HURT
+        Map<Direction, Animation<TextureRegion>> hurtAnims = new HashMap<>();
+        Animation<TextureRegion> hurtAnim = loadAnimationFromSheet("demon/knockback_demon_left.png", 5, 1, 0.1f);
+        hurtAnim.setPlayMode(Animation.PlayMode.NORMAL);
+        hurtAnims.put(Direction.DOWN, hurtAnim);
+        hurtAnims.put(Direction.LEFT, hurtAnim);
+
+        Animation<TextureRegion> hurtRightAnim = loadAnimationFromSheet("demon/knockback_demon_right.png", 5, 1, 0.1f);
+        hurtRightAnim.setPlayMode(Animation.PlayMode.NORMAL);
+        hurtAnims.put(Direction.RIGHT, hurtRightAnim);
+        hurtAnims.put(Direction.UP, hurtRightAnim);
+
+        this.animations.put(EnemyState.HURT, hurtAnims);
+
+        // Animasi DEAD
+        Map<Direction, Animation<TextureRegion>> deadAnims = new HashMap<>();
+        Animation<TextureRegion> deadAnim = loadAnimationFromSheet("demon/death_demon_left_animation.png", 19, 1, 0.1f);
+        deadAnim.setPlayMode(Animation.PlayMode.NORMAL);
+        deadAnims.put(Direction.DOWN, deadAnim);
+        deadAnims.put(Direction.LEFT, deadAnim);
+
+        Animation<TextureRegion> deadRightAnim = loadAnimationFromSheet("demon/death_demon_right_animation.png", 19, 1, 0.1f);
+        deadRightAnim.setPlayMode(Animation.PlayMode.NORMAL);
+        deadAnims.put(Direction.RIGHT, deadRightAnim);
+        deadAnims.put(Direction.UP, deadRightAnim);
+
+        this.animations.put(EnemyState.DEAD, deadAnims);
     }
 
     @Override
     protected void updateAI(float delta) {
         // Update komponen serangan (untuk mengelola timer hitbox-nya)
         meleeAttack.update(delta);
-        stateTimer += delta;
 
         // Abaikan AI jika sedang dalam state non-aktif (HURT atau DEAD)
         if (currentState == EnemyState.HURT || currentState == EnemyState.DEAD) {
-            if (currentState == EnemyState.HURT && animations.get(currentState).get(currentDirection).isAnimationFinished(stateTimer)) {
+            // Periksa jika animasi HURT sudah selesai
+            if (currentState == EnemyState.HURT && animations.get(currentState).get(currentDirection) != null && animations.get(currentState).get(currentDirection).isAnimationFinished(stateTimer)) {
                 currentState = EnemyState.IDLE;
             }
             return;
@@ -120,6 +145,7 @@ public class EnemyB extends Enemy implements IMeleeAttacker {
     }
 
     private void chase(float delta) {
+        // Berhenti bergerak sedikit sebelum mencapai jangkauan serangan
         if (!isPlayerInRange(attackRange * 0.8f)) {
             Vector2 directionToTarget = new Vector2(target.getPosition()).sub(this.position).nor();
             position.mulAdd(directionToTarget, speed * delta);
@@ -129,16 +155,16 @@ public class EnemyB extends Enemy implements IMeleeAttacker {
 
     private void updateDirection() {
         float dx = target.getPosition().x - this.position.x;
-        float dy = target.getPosition().y - this.position.y;
+        // float dy = target.getPosition().y - this.position.y; // Tidak digunakan untuk arah Kiri/Kanan
 
-        if (Math.abs(dx) > Math.abs(dy)) {
-            this.currentDirection = dx > 0 ? Direction.RIGHT : Direction.LEFT;
+        // Untuk Demon, kita bisa buat arahnya lebih simpel (hanya kiri/kanan)
+        if (dx > 0) {
+            this.currentDirection = Direction.RIGHT;
         } else {
-            this.currentDirection = dy > 0 ? Direction.UP : Direction.DOWN;
+            this.currentDirection = Direction.LEFT;
         }
     }
 
-    // (BARU) Implementasi metode dari interface IMeleeAttacker
     @Override
     public EnemyMeleeAttack getMeleeAttack() {
         return this.meleeAttack;
