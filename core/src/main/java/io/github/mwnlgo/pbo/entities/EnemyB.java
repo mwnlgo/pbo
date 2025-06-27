@@ -24,21 +24,23 @@ public class EnemyB extends Enemy implements IMeleeAttacker {
     public EnemyB(float x, float y, Player target, GameScreen screen) {
         // Panggil konstruktor kelas dasar dengan nilai spesifik untuk EnemyB
         super(x, y, target, screen,
-            100f,   // maxHealth
-            100f,   // speed
+            80f,   // maxHealth
+            80f,   // speed
             80f,    // hitboxWidth
             80f,    // hitboxHeight
             -40f,   // hitboxOffsetX
             -80f);  // hitboxOffsetY
 
         // Inisialisasi komponen serangan dengan damage 15 dan durasi hitbox 0.5 detik
-        this.meleeAttack = new EnemyMeleeAttack(this, 15f, 0.5f);
+        this.meleeAttack = new EnemyMeleeAttack(this, 15f, 1f);
 
         loadAnimations();
 
         this.currentState = EnemyState.IDLE;
         this.currentDirection = Direction.DOWN;
     }
+
+
 
     private void loadAnimations() {
         // Animasi IDLE

@@ -28,7 +28,7 @@ public class EnemyC extends Enemy {
             -16f, // hitboxOffsetX
             -24f); // hitboxOffsetY
 
-        this.projectileAttack = new EnemyProjectileAttack(this, 15f, 2.0f);
+        this.projectileAttack = new EnemyProjectileAttack(this, 15f, 3.0f);
         loadAnimations();
         this.currentState = EnemyState.IDLE;
         this.currentDirection = Direction.DOWN;
