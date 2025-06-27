@@ -30,7 +30,7 @@ public class FinishScreen implements Screen {
         this.wave = wave;
         // Inisialisasi kamera dan viewport
         this.camera = new OrthographicCamera();
-        viewport = new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), camera);
+        viewport = new FitViewport(1280, 960, camera);
         viewport.apply();
         // Update kamera untuk memastikan posisi yang benar
         camera.position.set(viewport.getWorldWidth() / 2, viewport.getWorldHeight() / 2, 0);
@@ -82,7 +82,7 @@ public class FinishScreen implements Screen {
         // Teks utama "Game Over"
         text.draw(game.getBatch(), "Game Over at Wave " + wave + "!\nYour score: " + score, viewport.getWorldWidth() / 2f - 325, viewport.getWorldHeight() / 2f + 50);
 
-        highscoreText.draw(game.getBatch(), "Highscore: " + highscore, viewport.getWorldWidth() / 2f - 200, viewport.getWorldHeight() / 2f + 200);
+        highscoreText.draw(game.getBatch(), "Highscore: " + highscore, viewport.getWorldWidth() / 2f - 200, viewport.getWorldHeight() / 2f + 250);
 
 
         replayText.draw(game.getBatch(), "Enter SPACE for play again", viewport.getWorldWidth() / 2f - 325, viewport.getWorldHeight() / 2f - 100);

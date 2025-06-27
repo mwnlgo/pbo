@@ -31,7 +31,7 @@ public class MainMenuScreen implements Screen {
         camera = new OrthographicCamera();
         // Gunakan ukuran layar saat ini sebagai basis viewport.
         // FitViewport akan memastikan rasio aspek tetap terjaga.
-        viewport = new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), camera);
+        viewport = new FitViewport(1280, 960, camera);
         camera.position.set(viewport.getWorldWidth() / 2, viewport.getWorldHeight() / 2, 0); // Posisikan kamera di tengah
         viewport.apply(true); // Terapkan viewport agar kamera terpusat dengan benar
 

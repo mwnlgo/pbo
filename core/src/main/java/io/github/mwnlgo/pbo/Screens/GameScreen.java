@@ -67,9 +67,9 @@ public class GameScreen implements Screen {
         this.game = game;
         this.batch = game.getBatch();
         camera = new OrthographicCamera();
-        viewport = new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), camera);
-        this.worldWidth = Gdx.graphics.getWidth();
-        this.worldHeight = Gdx.graphics.getHeight();
+        this.worldWidth = 1280;
+        this.worldHeight = 960;
+        viewport = new FitViewport(worldWidth, worldHeight, camera);
         allEnemies = new Array<>();
         playerProjectiles = new Array<>();
         droppedItems = new Array<>();
