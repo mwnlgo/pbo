@@ -55,6 +55,8 @@ public class GameScreen implements Screen {
 
     private Music backgroundMusic;
 
+    private Music loseMusic;
+
     public GameScreen(Main game) {
         this.game = game;
         this.batch = game.getBatch();
@@ -92,6 +94,9 @@ public class GameScreen implements Screen {
         backgroundMusic.setLooping(true);
         backgroundMusic.setVolume(0.2f);
         backgroundMusic.play();
+
+        loseMusic = Gdx.audio.newMusic(Gdx.files.internal("sound/LosingMusic.wav"));
+        loseMusic.setVolume(1f);
 
         Gdx.input.setInputProcessor(null);
     }
@@ -138,6 +143,7 @@ public class GameScreen implements Screen {
         if (!player.isAlive()) {
             if (backgroundMusic.isPlaying()) {
                 backgroundMusic.stop();
+                loseMusic.play();
             }
             return;
         }

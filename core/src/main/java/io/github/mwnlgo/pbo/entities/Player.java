@@ -129,6 +129,33 @@ public class Player implements IDamageable {
         attackAnims.put(Direction.RIGHT, attackRight);
         animations.put(PlayerState.ATTACKING, attackAnims);
 
+        // Di dalam Player.java -> method loadAnimations()
+
+// ... setelah blok "animations.put(PlayerState.ATTACKING, attackAnims);"
+
+        // (BARU) Animasi untuk melempar (THROWING)
+        Map<Direction, Animation<TextureRegion>> throwAnims = new HashMap<>();
+
+        Animation<TextureRegion> throwDown = loadAnimationFromSheet("player/lempar_ayam.png", 4, 1, 0.15f);
+        throwDown.setPlayMode(Animation.PlayMode.NORMAL);
+        throwAnims.put(Direction.DOWN, throwDown);
+
+        Animation<TextureRegion> throwUp = loadAnimationFromSheet("player/lempar_back_ayam.png", 4, 1, 0.15f);
+        throwUp.setPlayMode(Animation.PlayMode.NORMAL);
+        throwAnims.put(Direction.UP, throwUp);
+
+        Animation<TextureRegion> throwLeft = loadAnimationFromSheet("player/lempar_left_ayam.png", 4, 1, 0.15f);
+        throwLeft.setPlayMode(Animation.PlayMode.NORMAL);
+        throwAnims.put(Direction.LEFT, throwLeft);
+
+        Animation<TextureRegion> throwRight = loadAnimationFromSheet("player/lempar_right_ayam.png", 4, 1, 0.15f);
+        throwRight.setPlayMode(Animation.PlayMode.NORMAL);
+        throwAnims.put(Direction.RIGHT, throwRight);
+
+        animations.put(PlayerState.THROWING, throwAnims);
+
+// ... sebelum blok "Map<Direction, Animation<TextureRegion>> hurtAnims = new HashMap<>();"
+
         Map<Direction, Animation<TextureRegion>> hurtAnims = new HashMap<>();
         Animation<TextureRegion> knockDown = loadAnimationFromSheet("player/knock_ayam.png", 5, 1, 0.1f);
         knockDown.setPlayMode(Animation.PlayMode.NORMAL);
@@ -143,6 +170,19 @@ public class Player implements IDamageable {
         knockRight.setPlayMode(Animation.PlayMode.NORMAL);
         hurtAnims.put(Direction.RIGHT, knockRight);
         animations.put(PlayerState.HURT, hurtAnims);
+
+        Map<Direction, Animation<TextureRegion>> deadAnims = new HashMap<>();
+
+        // Animasi ini tidak bergantung pada arah, jadi kita gunakan satu animasi untuk semua arah
+        Animation<TextureRegion> deathAnimation = loadAnimationFromSheet("player/dead_ayam.png", 7, 1, 0.25f);
+        deathAnimation.setPlayMode(Animation.PlayMode.NORMAL); // Mainkan sekali saja, jangan diulang
+
+        deadAnims.put(Direction.DOWN, deathAnimation);
+        deadAnims.put(Direction.UP, deathAnimation);
+        deadAnims.put(Direction.LEFT, deathAnimation);
+        deadAnims.put(Direction.RIGHT, deathAnimation);
+
+        animations.put(PlayerState.DEAD, deadAnims);
     }
 
     private void loadAttackComponents() {
@@ -153,8 +193,15 @@ public class Player implements IDamageable {
 
     public void update(float delta) {
         if (!isAlive) {
-            currentState = PlayerState.DEAD;
-            return;
+            // Jika pemain baru saja mati, atur state ke DEAD dan reset timer
+            if (currentState != PlayerState.DEAD) {
+                currentState = PlayerState.DEAD;
+                stateTimer = 0;
+            } else {
+                // Jika sudah dalam state DEAD, lanjutkan timer agar animasi berjalan
+                stateTimer += delta;
+            }
+            return; // Hentikan proses lain seperti input dan pergerakan
         }
 
         // Update timer invincibility
@@ -179,10 +226,11 @@ public class Player implements IDamageable {
                 currentState = PlayerState.IDLE;
             }
         } else if (isAttacking) {
-            currentState = PlayerState.ATTACKING;
-            Animation<TextureRegion> currentAnim = animations.get(currentState).get(currentDirection);
-            if (currentAnim != null && currentAnim.isAnimationFinished(stateTimer)) {
-                isAttacking = false;
+            // State sudah diatur ke ATTACKING atau THROWING oleh handleInput.
+            // Kita hanya perlu memeriksa apakah animasi untuk state tersebut sudah selesai.
+            Animation<TextureRegion> currentAttackAnimation = animations.get(currentState).get(currentDirection);
+            if (currentAttackAnimation != null && currentAttackAnimation.isAnimationFinished(stateTimer)) {
+                isAttacking = false; // Setelah animasi selesai, keluar dari mode menyerang
             }
         } else if (isMoving) {
             currentState = PlayerState.WALKING;
@@ -208,6 +256,18 @@ public class Player implements IDamageable {
         // Gunakan Math.max dan Math.min untuk "menjepit" posisi
         position.x = Math.max(minX, Math.min(position.x, maxX));
         position.y = Math.max(minY, Math.min(position.y, maxY));
+    }
+
+    public boolean isDeathAnimationFinished() {
+        if (currentState != PlayerState.DEAD) {
+            return false;
+        }
+        // Dapatkan animasi kematian (tidak bergantung arah)
+        Animation<TextureRegion> deathAnimation = animations.get(PlayerState.DEAD).get(Direction.DOWN);
+        if (deathAnimation == null) {
+            return true; // Jika tidak ada animasi, anggap selesai
+        }
+        return deathAnimation.isAnimationFinished(stateTimer);
     }
 
     private void handleInput(float delta) {
@@ -241,8 +301,15 @@ public class Player implements IDamageable {
 
         if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
             currentAttack.attack();
-            this.isAttacking = true;
+            this.isAttacking = true; // Tetap set isAttacking untuk memblokir input lain
             this.stateTimer = 0;
+
+            // (PERUBAHAN KUNCI) Tentukan state berdasarkan tipe serangan
+            if (currentAttack instanceof PlayerDistanceAttack) {
+                this.currentState = PlayerState.THROWING;
+            } else {
+                this.currentState = PlayerState.ATTACKING;
+            }
         }
     }
 
@@ -255,7 +322,8 @@ public class Player implements IDamageable {
 
         if (currentAnimation == null) return;
 
-        boolean isLooping = (currentState != PlayerState.ATTACKING && currentState != PlayerState.HURT);
+        boolean isLooping = (currentState != PlayerState.ATTACKING && currentState != PlayerState.HURT && currentState != PlayerState.THROWING && currentState != PlayerState.DEAD);
+
         TextureRegion currentFrame = currentAnimation.getKeyFrame(stateTimer, isLooping);
 
         float frameWidth = currentFrame.getRegionWidth();
