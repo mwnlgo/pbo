@@ -41,7 +41,10 @@ public class GameScreen implements Screen {
     private ShapeRenderer shapeRenderer;
     private Array<EnemyMeleeAttack> hitByEnemyAttacks;
 
-    // (BARU) Variabel untuk musik latar
+    // (DIUBAH) Aset untuk UI Health Bar
+    private Texture healthBarSheet;
+    private TextureRegion[] healthBarFrames;
+
     private Music backgroundMusic;
 
     public GameScreen(Main game) {
@@ -49,7 +52,6 @@ public class GameScreen implements Screen {
         this.batch = game.getBatch();
         camera = new OrthographicCamera();
         viewport = new FitViewport(1280, 720, camera);
-        camera.position.set(viewport.getWorldWidth() / 2, viewport.getWorldHeight() / 2, 0);
         this.worldWidth = 3000;
         this.worldHeight = 3000;
         allEnemies = new Array<>();
@@ -62,48 +64,50 @@ public class GameScreen implements Screen {
     public void show() {
         shapeRenderer = new ShapeRenderer();
         playerProjectileAnimation = loadAnimationFromSheet("player/projectile_ayam.png", 4, 1, 0.1f);
+
+        // (BARU) Memuat spritesheet health bar dengan 7 frame
+        healthBarSheet = new Texture("UI/health_bar.png");
+        TextureRegion[][] tempFrames = TextureRegion.split(healthBarSheet, healthBarSheet.getWidth() / 7, healthBarSheet.getHeight());
+        healthBarFrames = new TextureRegion[7];
+        for (int i = 0; i < 7; i++) {
+            healthBarFrames[i] = tempFrames[0][i];
+        }
+
         player = new Player(100, 100, this);
+        spawnEnemies();
 
-        allEnemies.add(new EnemyA(300, 300, player, this));
-        allEnemies.add(new EnemyA(500, 200, player, this));
-        allEnemies.add(new EnemyB(700, 400, player, this));
-        allEnemies.add(new EnemyC(1000, 100, player, this));
-        allEnemies.add(new EnemyC(800, 600, player, this));
-
-        // (BARU) Muat dan putar musik
-        // PENTING: Ganti "music/your_bgm.mp3" dengan path file musik Anda yang sebenarnya
         backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("sound/GameScreen.ogg"));
-        backgroundMusic.setLooping(true); // Atur agar musik berulang
-        backgroundMusic.setVolume(0.2f);  // Atur volume (0.0 sampai 1.0)
+        backgroundMusic.setLooping(true);
+        backgroundMusic.setVolume(0.2f);
         backgroundMusic.play();
 
         Gdx.input.setInputProcessor(null);
     }
 
+    private void spawnEnemies() {
+        allEnemies.add(new EnemyA(300, 300, player, this));
+        allEnemies.add(new EnemyA(500, 200, player, this));
+        allEnemies.add(new EnemyB(700, 400, player, this));
+        allEnemies.add(new EnemyC(1000, 100, player, this));
+        allEnemies.add(new EnemyC(800, 600, player, this));
+    }
+
     public void update(float delta) {
-        if (!player.isAlive()) return;
+        if (!player.isAlive()) {
+            if (backgroundMusic.isPlaying()) {
+                backgroundMusic.stop();
+            }
+            return;
+        }
 
         player.update(delta);
 
+        // (PERBAIKAN) Logika menghapus musuh yang sudah mati disederhanakan
         for (int i = allEnemies.size - 1; i >= 0; i--) {
             Enemy enemy = allEnemies.get(i);
             enemy.update(delta);
-
-            // Logika untuk menghapus musuh setelah animasi kematiannya selesai
-            boolean canRemove = false;
-            if (!enemy.isAlive()) {
-                // Periksa setiap tipe musuh yang memiliki animasi kematian
-                if (enemy instanceof EnemyA && ((EnemyA) enemy).isDeathAnimationFinished()) {
-                    canRemove = true;
-                } else if (enemy instanceof EnemyB) { // Asumsi EnemyB juga punya metode ini
-                    // canRemove = ((EnemyB) enemy).isDeathAnimationFinished();
-                    // Anda perlu menambahkan metode isDeathAnimationFinished() ke EnemyB
-                } else if (enemy instanceof EnemyC && ((EnemyC) enemy).isDeathAnimationFinished()) {
-                    canRemove = true;
-                }
-            }
-
-            if (canRemove) {
+            // Cukup panggil method dari kelas dasar Enemy. Ini berlaku untuk semua jenis musuh.
+            if (!enemy.isAlive() && enemy.isDeathAnimationFinished()) {
                 enemy.dispose();
                 allEnemies.removeIndex(i);
             }
@@ -127,7 +131,6 @@ public class GameScreen implements Screen {
         }
 
         checkCollisions();
-
         camera.position.set(player.getPosition().x, player.getPosition().y, 0);
         camera.update();
     }
@@ -141,6 +144,7 @@ public class GameScreen implements Screen {
             this.enemyProjectiles.add(projectile);
         }
     }
+
 
     private void checkCollisions() {
         PlayerAttackComponent playerAttack = player.getCurrentAttack();
@@ -182,14 +186,13 @@ public class GameScreen implements Screen {
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        // --- Langkah 1: Gambar Dunia Game (menggunakan kamera yang bergerak) ---
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
         for (Enemy enemy : allEnemies) {
             enemy.render(batch);
         }
-        if (player.isAlive()) {
-            player.render(batch);
-        }
+        player.render(batch); // Render pemain bahkan jika mati, untuk animasi kematian
         for (Projectile p : playerProjectiles) {
             p.render(batch);
         }
@@ -198,6 +201,33 @@ public class GameScreen implements Screen {
         }
         batch.end();
 
+        // --- Langkah 2: Gambar UI / HUD (menggunakan kamera statis dari viewport) ---
+        batch.setProjectionMatrix(viewport.getCamera().combined);
+        batch.begin();
+
+        // Logika untuk memilih frame health bar yang benar
+        float healthPercentage = player.getHealth() / player.getMaxHealth();
+        int frameIndex;
+
+        if (healthPercentage <= 0) {
+            frameIndex = 6; // Frame ke-7 (index 6) adalah untuk kondisi mati
+        } else if (healthPercentage == 1) {
+            frameIndex = 0; // Frame pertama (index 0) untuk HP penuh
+        } else {
+            // Map persentase HP (0-100%) ke 5 frame sisanya (index 1-5)
+            frameIndex = 6 - (int)Math.ceil(healthPercentage * 6);
+            frameIndex = Math.max(1, Math.min(5, frameIndex)); // Pastikan index antara 1 dan 5
+        }
+
+        TextureRegion currentHealthFrame = healthBarFrames[frameIndex];
+        float barX = player.getPosition().x - currentHealthFrame.getRegionWidth() / 2f;
+        float barY = player.getPosition().y + player.getBounds().height + 10f;
+
+        batch.draw(currentHealthFrame,barX, barY);
+
+        batch.end();
+
+        // --- Langkah 3: Gambar Bentuk Debug (opsional) ---
         drawDebugShapes();
     }
 
@@ -206,7 +236,9 @@ public class GameScreen implements Screen {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
 
         shapeRenderer.setColor(Color.RED);
-        shapeRenderer.rect(player.getBounds().x, player.getBounds().y, player.getBounds().width, player.getBounds().height);
+        if (player.isAlive()) {
+            shapeRenderer.rect(player.getBounds().x, player.getBounds().y, player.getBounds().width, player.getBounds().height);
+        }
 
         PlayerAttackComponent playerAttack = player.getCurrentAttack();
         if (playerAttack.isActive() && playerAttack instanceof PlayerMeleeAttack) {
@@ -260,20 +292,9 @@ public class GameScreen implements Screen {
     public void resize(int width, int height) {
         viewport.update(width, height, true);
     }
-
-    @Override public void pause() {
-        if(backgroundMusic != null && backgroundMusic.isPlaying()) backgroundMusic.pause();
-    }
-
-    @Override public void resume() {
-        if(backgroundMusic != null && !backgroundMusic.isPlaying()) backgroundMusic.play();
-    }
-
-    @Override public void hide() {
-        if (backgroundMusic != null) {
-            backgroundMusic.stop();
-        }
-    }
+    @Override public void pause() { if(backgroundMusic != null && backgroundMusic.isPlaying()) backgroundMusic.pause(); }
+    @Override public void resume() { if(backgroundMusic != null && !backgroundMusic.isPlaying()) backgroundMusic.play(); }
+    @Override public void hide() { if (backgroundMusic != null) { backgroundMusic.stop(); } }
 
     @Override
     public void dispose() {
@@ -292,9 +313,13 @@ public class GameScreen implements Screen {
         }
         playerProjectiles.clear();
 
-        // (BARU) Buang musik untuk mencegah memory leak
         if (backgroundMusic != null) {
             backgroundMusic.dispose();
+        }
+
+        // (BARU) Buang spritesheet health bar
+        if (healthBarSheet != null) {
+            healthBarSheet.dispose();
         }
 
         Gdx.app.log("GameScreen", "Disposed GameScreen resources.");
