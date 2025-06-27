@@ -59,6 +59,8 @@ public class GameScreen implements Screen {
 
     private Music loseMusic;
 
+    private Array<ItemDrop> droppedItems;
+
     public GameScreen(Main game) {
         this.game = game;
         this.batch = game.getBatch();
@@ -68,8 +70,10 @@ public class GameScreen implements Screen {
         this.worldHeight = Gdx.graphics.getHeight();
         allEnemies = new Array<>();
         playerProjectiles = new Array<>();
+        droppedItems = new Array<>();
         enemyProjectiles = new Array<>();
         hitByEnemyAttacks = new Array<>();
+
     }
 
     @Override
@@ -172,6 +176,19 @@ public class GameScreen implements Screen {
             }
         }
 
+        for (int i = droppedItems.size - 1; i >= 0; i--) {
+            ItemDrop item = droppedItems.get(i);
+            item.update(delta); // <-- TAMBAHKAN BARIS INI untuk menjalankan animasinya
+
+            if (player.getBounds().overlaps(item.getBounds())) {
+                item.setCollected(true);
+                Gdx.app.log("GameScreen", "Item collected!");
+                player.heal(item.getHealAmount()); // Misalnya, menambah HP pemain
+                item.dispose();
+                droppedItems.removeIndex(i);
+            }
+        }
+
         for (int i = playerProjectiles.size - 1; i >= 0; i--) {
             Projectile p = playerProjectiles.get(i);
             p.update(delta);
@@ -212,6 +229,12 @@ public class GameScreen implements Screen {
         }
     }
 
+    public void spawnItemDrop(float x, float y) {
+        droppedItems.add(new ItemDrop(x, y));
+        Gdx.app.log("GameScreen", "Item dropped at: " + x + ", " + y);
+    }
+
+
 
     private void checkCollisions() {
         PlayerAttackComponent playerAttack = player.getCurrentAttack();
@@ -235,8 +258,11 @@ public class GameScreen implements Screen {
         for (Enemy enemy : allEnemies) {
             if (enemy instanceof IMeleeAttacker) {
                 EnemyMeleeAttack enemyAttack = ((IMeleeAttacker) enemy).getMeleeAttack();
-                if (enemyAttack.isActive() && !hitByEnemyAttacks.contains(enemyAttack, true) && enemyAttack.getAttackHitbox().overlaps(player.getBounds())) {
+
+                // --- INILAH PERUBAHAN YANG PALING PENTING ---
+                if (enemyAttack.isHitboxLive() && !hitByEnemyAttacks.contains(enemyAttack, true) && enemyAttack.getAttackHitbox().overlaps(player.getBounds())) {
                     player.takeDamage(enemyAttack.getDamageAmount());
+
                     hitByEnemyAttacks.add(enemyAttack);
                 }
                 if (!enemyAttack.isActive() && hitByEnemyAttacks.contains(enemyAttack, true)) {
@@ -266,6 +292,10 @@ public class GameScreen implements Screen {
         for (EnemyProjectile p : enemyProjectiles) {
             p.render(batch);
         }
+        for (ItemDrop item : droppedItems) { // <-- Tambahkan ini
+            item.render(batch);
+        }
+
         batch.end();
 
         // --- Langkah 2: Gambar UI / HUD (menggunakan kamera statis dari viewport) ---
@@ -324,17 +354,35 @@ public class GameScreen implements Screen {
         }
 
         for (Enemy enemy : allEnemies) {
+            // Gambar hitbox dasar musuh
             shapeRenderer.setColor(Color.LIME);
             shapeRenderer.rect(enemy.getBounds().x, enemy.getBounds().y, enemy.getBounds().width, enemy.getBounds().height);
 
+            // Gambar hitbox serangan musuh dengan logika warna baru
             if (enemy instanceof IMeleeAttacker) {
                 EnemyMeleeAttack enemyAttack = ((IMeleeAttacker) enemy).getMeleeAttack();
-                if (enemyAttack.isActive()) {
-                    shapeRenderer.setColor(Color.ORANGE);
+
+                // Jika hitbox serangan sedang LIVE, gambar kotak MERAH
+                if (enemyAttack.isHitboxLive()) {
+                    shapeRenderer.setColor(Color.RED); // Warna untuk hitbox aktif
                     shapeRenderer.rect(enemyAttack.getAttackHitbox().x, enemyAttack.getAttackHitbox().y, enemyAttack.getAttackHitbox().width, enemyAttack.getAttackHitbox().height);
+                }
+                // Jika animasi serangan berjalan TAPI hitbox BELUM live, gambar KUNING
+                else if (enemyAttack.isActive()) {
+                    shapeRenderer.setColor(Color.YELLOW); // Warna untuk masa wind-up/persiapan
+                    // Kita tetap perlu memposisikan hitbox-nya agar tahu di mana seharusnya ia berada
+                    Rectangle rect = enemyAttack.getAttackHitbox();
+                    shapeRenderer.rect(rect.x, rect.y, rect.width, rect.height);
                 }
             }
         }
+
+        shapeRenderer.setColor(Color.PINK);
+        for (ItemDrop item : droppedItems) {
+            shapeRenderer.rect(item.getBounds().x, item.getBounds().y, item.getBounds().width, item.getBounds().height);
+        }
+
+
 
         shapeRenderer.setColor(Color.CYAN);
         for (Projectile projectile : playerProjectiles) {
@@ -391,6 +439,11 @@ public class GameScreen implements Screen {
     public void dispose() {
         if (shapeRenderer != null) shapeRenderer.dispose();
         if (player != null) player.dispose();
+
+        for (ItemDrop item : droppedItems) { // <-- Tambahkan ini
+            item.dispose();
+        }
+        droppedItems.clear();
 
         for (Enemy e : allEnemies) e.dispose();
         allEnemies.clear();
