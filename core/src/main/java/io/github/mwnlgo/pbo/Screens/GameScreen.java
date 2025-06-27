@@ -11,6 +11,7 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
@@ -61,9 +62,9 @@ public class GameScreen implements Screen {
         this.game = game;
         this.batch = game.getBatch();
         camera = new OrthographicCamera();
-        viewport = new FitViewport(1280, 720, camera);
-        this.worldWidth = 1100f;
-        this.worldHeight = 700f;
+        viewport = new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), camera);
+        this.worldWidth = Gdx.graphics.getWidth();
+        this.worldHeight = Gdx.graphics.getHeight();
         allEnemies = new Array<>();
         playerProjectiles = new Array<>();
         enemyProjectiles = new Array<>();
@@ -72,9 +73,12 @@ public class GameScreen implements Screen {
 
     @Override
     public void show() {
-        waveFont = new BitmapFont();
-        waveFont.setColor(Color.WHITE);
-        waveFont.getData().setScale(2f);
+        // Inisialisasi font menggunakan FreeTypeFontGenerator
+        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("font/Jersey25-Regular.ttf"));
+        FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        parameter.size = 50; // Ukuran font yang diinginkan
+        waveFont = generator.generateFont(parameter); // Buat font dengan parameter yang telah ditentukan
+        generator.dispose(); // Buang generator setelah font dibuat
 
         shapeRenderer = new ShapeRenderer();
         playerProjectileAnimation = loadAnimationFromSheet("player/projectile_ayam.png", 4, 1, 0.1f);

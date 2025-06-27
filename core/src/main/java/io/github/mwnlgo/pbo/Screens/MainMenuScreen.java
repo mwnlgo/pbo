@@ -6,6 +6,7 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
@@ -32,11 +33,12 @@ public class MainMenuScreen implements Screen {
         camera.position.set(viewport.getWorldWidth() / 2, viewport.getWorldHeight() / 2, 0); // Posisikan kamera di tengah
         viewport.apply(true); // Terapkan viewport agar kamera terpusat dengan benar
 
-        // Inisialisasi font. Font default sangat berguna untuk debugging atau menu sederhana.
-        font = new BitmapFont();
-        font.setColor(Color.WHITE); // Atur warna teks
-        // Sesuaikan skala font jika terlalu kecil atau besar.
-        // font.getData().setScale(2.0f); // Contoh: perbesar font 2x
+        // Inisialisasi font menggunakan FreeTypeFontGenerator
+        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("font/Jersey25-Regular.ttf"));
+        FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        parameter.size = 50; // Ukuran font yang diinginkan
+        font = generator.generateFont(parameter); // Buat font dengan parameter yang telah ditentukan
+        generator.dispose(); // Buang generator setelah font dibuat
     }
 
     @Override
