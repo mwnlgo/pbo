@@ -51,6 +51,8 @@ public class GameScreen implements Screen {
     private ShapeRenderer shapeRenderer;
     private Array<EnemyMeleeAttack> hitByEnemyAttacks;
 
+    private Texture backgroundTexture;
+
     // (DIUBAH) Aset untuk UI Health Bar
     private Texture healthBarSheet;
     private TextureRegion[] healthBarFrames;
@@ -85,6 +87,8 @@ public class GameScreen implements Screen {
         waveFont = generator.generateFont(parameter); // Buat font untuk wave
         scoreFont = generator.generateFont(parameter); // Buat font untuk skor
         generator.dispose(); // Buang generator setelah font dibuat
+
+        backgroundTexture = new Texture("bg/castle.png");
 
         shapeRenderer = new ShapeRenderer();
         playerProjectileAnimation = loadAnimationFromSheet("player/projectile_ayam.png", 4, 1, 0.1f);
@@ -282,6 +286,9 @@ public class GameScreen implements Screen {
         // --- Langkah 1: Gambar Dunia Game (menggunakan kamera yang bergerak) ---
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
+
+        batch.draw(backgroundTexture, 0, 0, worldWidth, worldHeight);
+
         for (Enemy enemy : allEnemies) {
             enemy.render(batch);
         }
@@ -440,6 +447,10 @@ public class GameScreen implements Screen {
     public void dispose() {
         if (shapeRenderer != null) shapeRenderer.dispose();
         if (player != null) player.dispose();
+
+        if (backgroundTexture != null) {
+            backgroundTexture.dispose();
+        }
 
         for (ItemDrop item : droppedItems) { // <-- Tambahkan ini
             item.dispose();
